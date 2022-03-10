@@ -1,0 +1,7 @@
+gen/
+src/hpc/api/openapi/
+
+**/__pycache__/
+.venv/
+*.tar.gz
+*.jar
