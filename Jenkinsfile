@@ -21,6 +21,7 @@ pipeline {
                 container('python') {
                     sh '/usr/local/bin/python -m pip install --upgrade pip'
                     sh 'pip install -r requirements.txt'
+                    sh 'apt update -y && apt install -y default-jre wget'
                     sh './generate.sh'
                 }
             }
