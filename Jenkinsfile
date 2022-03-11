@@ -79,19 +79,23 @@ pipeline {
             }
         }
         stage('Integration Tests') {
-            echo 'Run your Integration Tests here'
-            sleep 50
-            try {
-                String testName = "1. Check that app is running - 200 response code"
-                String url = "http://localhost:8080/services"
-                String responseCode = sh(label: testName, script: "curl -m 10 -sLI -w '%{http_code}' $url -o /dev/null", returnStdout: true)
+            steps {
+                script {
+                    echo 'Run your Integration Tests here'
+                    sleep 50
+                    try {
+                        String testName = "1. Check that app is running - 200 response code"
+                        String url = "http://localhost:8080/services"
+                        String responseCode = sh(label: testName, script: "curl -m 10 -sLI -w '%{http_code}' $url -o /dev/null", returnStdout: true)
 
-                if (responseCode != '200') {
-                    error("$testName: Returned status code = $responseCode when calling $url")
+                        if (responseCode != '200') {
+                            error("$testName: Returned status code = $responseCode when calling $url")
+                        }
+                    } catch (ignored) {
+                        currentBuild.result = 'FAILURE'
+                        echo "Integration Tests failed"
+                    }
                 }
-            } catch (ignored) {
-                currentBuild.result = 'FAILURE'
-                echo "Integration Tests failed"
             }
         }
         stage('Docker Undeploy') {
