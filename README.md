@@ -21,3 +21,9 @@ cd src/
 # Running the service
 python3 -m hpc.api.run
 ```
+
+To run tests:
+
+```bash
+pytest src/tests
+```

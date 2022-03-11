@@ -5,3 +5,5 @@ src/hpc/api/openapi/
 .venv/
 *.tar.gz
 *.jar
+
+**/.pytest_cache/
