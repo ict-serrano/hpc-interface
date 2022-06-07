@@ -1,3 +1,4 @@
 connexion[swagger-ui]
 six
 pytest
+paramiko==2.11.0

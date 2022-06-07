@@ -7,3 +7,5 @@ src/hpc/api/openapi/
 *.jar
 
 **/.pytest_cache/
+
+src/tests/fixture.infrastructure.yaml
