@@ -27,12 +27,12 @@ paths:
                 description: List of all available HPC services
                 items:
                   $ref: '#/components/schemas/HPCService'
-        401:
-          description: Unauthorized request
-          content:
-            application/json:
-              schema:
-                type: string
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
         500:
           description: An error has occurred
           content:
@@ -67,12 +67,12 @@ paths:
             application/json:
               schema:
                 type: string
-        401:
-          description: Unauthorized request
-          content:
-            application/json:
-              schema:
-                type: string
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
         500:
           description: There was an error during job submission
           content:
@@ -101,12 +101,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JobStatus'
-        401:
-          description: Unauthorized request
-          content:
-            application/json:
-              schema:
-                type: string
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
         404:
           description: Job not found
           content:
@@ -140,19 +140,19 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Infrastructure"
+                $ref: "#/components/schemas/InfrastructureSummary"
         400:
           description: Invalid infrastructure request
           content:
             application/json:
               schema:
                 type: string
-        401:
-          description: Unauthorized request
-          content:
-            application/json:
-              schema:
-                type: string
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
         500:
           description: There was an error during infrastructure creation
           content:
@@ -180,12 +180,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InfrastructureSummary'
-        401:
-          description: Unauthorized request
-          content:
-            application/json:
-              schema:
-                type: string
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
         404:
           description: Infrastructure not found
           content:
@@ -321,8 +321,9 @@ components:
       required:
         - id
         - scheduler_id
+        - infrastructure
         - status
-        - success
+        # - success
       properties:
         id:
           description: UUID of the job
@@ -331,17 +332,20 @@ components:
         scheduler_id:
           description: ID returned by batch scheduler
           type: string
+        infrastructure:
+          description: Name of the HPC infrastructure
+          type: string
         status:
           description: Status of the job
           $ref: "#/components/schemas/JobStatusCode"
-        exit_code:
-          description: Exit code of the job
-          type: integer
-          minimum: 0
-          maximum: 255
-        success:
-          description: Flag whether the job is successful for simpler statuses
-          type: boolean
+        # exit_code:
+        #   description: Exit code of the job
+        #   type: integer
+        #   minimum: 0
+        #   maximum: 255
+        # success:
+        #   description: Flag whether the job is successful for simpler statuses
+        #   type: boolean
 
     JobStatusCode:
       type: string

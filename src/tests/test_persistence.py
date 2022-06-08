@@ -1,3 +1,5 @@
+import pytest
+
 import hpc.api.utils.persistence as persistence
 
 def test_entry_creation():
@@ -9,3 +11,7 @@ def test_entry_creation():
     }
     persistence.save(directory, data)
     assert persistence.get(directory) == data
+
+def test_non_existent_entry():
+    with pytest.raises(KeyError):
+        persistence.get("non-existent")

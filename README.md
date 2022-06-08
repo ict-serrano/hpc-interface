@@ -22,6 +22,18 @@ cd src/
 python3 -m hpc.api.run
 ```
 
+Before running tests, please provide a fixture (fixture.infrastructure.yaml) with the list of infrastructures and put in src/tests. The format for the fixture is the following:
+```yaml
+- name: cluster_1
+  host: some.cluster.com
+  username: user_a
+  hostname: some.cluster
+  ssh-key:
+    type: ssh-ed25519
+    path: /path/to/ssh/key
+    password: private-key-password
+```
+
 To run tests:
 
 ```bash
