@@ -179,7 +179,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Infrastructure'
+                $ref: '#/components/schemas/InfrastructureSummary'
         401:
           description: Unauthorized request
           content:
@@ -266,6 +266,24 @@ components:
               type: string
             password:
               type: string
+
+    InfrastructureSummary:
+      description: Infrastructure schema
+      type: object
+      required:
+        - name
+        - host
+        - username
+        - hostname
+      properties:
+        name:
+          type: string
+        host:
+          type: string
+        username:
+          type: string
+        hostname:
+          type: string
 
     SSHKeyType:
       type: string
