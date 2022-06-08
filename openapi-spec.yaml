@@ -8,7 +8,8 @@ info:
     url: "http://www.apache.org/licenses/LICENSE-2.0.html"
 
 paths:
-  
+
+  # handle population of services
   /services:
     get:
       summary: "Get all available services"
@@ -34,6 +35,165 @@ paths:
                 type: string
         500:
           description: An error has occurred
+          content:
+            application/json:
+              schema:
+                type: string
+
+  # manage and monitor job status
+  /job:
+    post:
+      summary: "Submit a new job"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: submit_new_job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobRequest"
+      responses:
+        200:
+          description: Job was submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobStatus"
+        400:
+          description: Invalid job request
+          content:
+            application/json:
+              schema:
+                type: string
+        401:
+          description: Unauthorized request
+          content:
+            application/json:
+              schema:
+                type: string
+        500:
+          description: There was an error during job submission
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /job/{job_id}:
+    get:
+      summary: "Get job status"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: get_job_status
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Job status returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobStatus'
+        401:
+          description: Unauthorized request
+          content:
+            application/json:
+              schema:
+                type: string
+        404:
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                type: string
+        500:
+          description: There was an error during job status retrieval
+          content:
+            application/json:
+              schema:
+                type: string
+
+  # handle population of infrastructures
+  /infrastructure:
+    post:
+      summary: "Create a new infrastructure"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: create_new_infrastructure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Infrastructure"
+      responses:
+        200:
+          description: Infrastructure was created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Infrastructure"
+        400:
+          description: Invalid infrastructure request
+          content:
+            application/json:
+              schema:
+                type: string
+        401:
+          description: Unauthorized request
+          content:
+            application/json:
+              schema:
+                type: string
+        500:
+          description: There was an error during infrastructure creation
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /infrastructure/{infrastructure_name}:
+    get:
+      summary: "Get infrastructure"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: get_infrastructure
+      parameters:
+        - name: infrastructure_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Infrastructure returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Infrastructure'
+        401:
+          description: Unauthorized request
+          content:
+            application/json:
+              schema:
+                type: string
+        404:
+          description: Infrastructure not found
+          content:
+            application/json:
+              schema:
+                type: string
+        500:
+          description: There was an error during infrastructure retrieval
           content:
             application/json:
               schema:
@@ -77,6 +237,100 @@ components:
       type: string
       enum:
         - filter
+
+    Infrastructure:
+      description: Infrastructure schema
+      type: object
+      required:
+        - name
+        - host
+        - username
+        - hostname
+        - ssh-key
+      properties:
+        name:
+          type: string
+        host:
+          type: string
+        username:
+          type: string
+        hostname:
+          type: string
+        ssh-key:
+          description: ssh key object
+          type: object
+          properties:
+            type:
+              $ref: "#/components/schemas/SSHKeyType"
+            path:
+              type: string
+            password:
+              type: string
+
+    SSHKeyType:
+      type: string
+      enum:
+        - ssh-rsa
+        - ssh-ed25519
+
+    JobRequest:
+      description: Job request schema
+      type: object
+      required:
+        - services
+        - infrastructure
+      properties:
+        services:
+          description: list of services to use for a job
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                $ref: "#/components/schemas/ServiceName"
+              version:
+                type: string
+        infrastructure:
+          description: Name of the HPC infrastructure
+          type: string
+        params:
+          description: arbitrary parameters passed for a job
+          type: object
+
+    JobStatus:
+      description: Job status schema
+      type: object
+      required:
+        - id
+        - scheduler_id
+        - status
+        - success
+      properties:
+        id:
+          description: UUID of the job
+          type: string
+          format: uuid
+        scheduler_id:
+          description: ID returned by batch scheduler
+          type: string
+        status:
+          description: Status of the job
+          $ref: "#/components/schemas/JobStatusCode"
+        exit_code:
+          description: Exit code of the job
+          type: integer
+          minimum: 0
+          maximum: 255
+        success:
+          description: Flag whether the job is successful for simpler statuses
+          type: boolean
+
+    JobStatusCode:
+      type: string
+      enum:
+        - queued
+        - running
+        - completed
 
   # # In case the security mechanisms are needed to be implemented 
   # securitySchemes:
