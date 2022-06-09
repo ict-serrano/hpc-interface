@@ -28,7 +28,7 @@ Before running tests, please provide a fixture (fixture.infrastructure.yaml) wit
   host: some.cluster.com
   username: user_a
   hostname: some.cluster
-  ssh-key:
+  ssh_key:
     type: ssh-ed25519
     path: /path/to/ssh/key
     password: private-key-password
@@ -39,3 +39,5 @@ To run tests:
 ```bash
 pytest src/tests
 ```
+
+The examples of usage can be found in the Swagger UI in the `/ui` path.

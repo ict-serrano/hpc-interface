@@ -30,11 +30,13 @@ def test_job_submission(ssh_infrastructures):
     pytest.job_id = job_status.id
 
 def test_job_retrieval(ssh_infrastructures):
-    # wait for job to be finished
-    time.sleep(5)
     job_status = job.get(pytest.job_id)
     assert len(job_status.scheduler_id) > 0
     assert job_status.infrastructure == ssh_infrastructures[0]["name"]
-    assert job_status.status == JobStatusCode.COMPLETED
+    assert job_status.status in [JobStatusCode.QUEUED, JobStatusCode.COMPLETED, JobStatusCode.RUNNING]
     # assert job_status.exit_code == 0
     # assert job_status.success == True
+
+def test_non_existent_job():
+    with pytest.raises(KeyError):
+        job.get("non_existent_infrastructure")

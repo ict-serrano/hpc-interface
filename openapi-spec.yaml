@@ -246,7 +246,7 @@ components:
         - host
         - username
         - hostname
-        - ssh-key
+        - ssh_key
       properties:
         name:
           type: string
@@ -256,7 +256,7 @@ components:
           type: string
         hostname:
           type: string
-        ssh-key:
+        ssh_key:
           description: ssh key object
           type: object
           properties:

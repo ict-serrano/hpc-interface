@@ -9,9 +9,9 @@ from hpc.api.openapi.models.job_status_code import JobStatusCode
 
 def submit(job_request: JobRequest):
     infrastructure = json.loads(persistence.get(persistence.get_cluster_directory(job_request.infrastructure)))
-    key_type = infrastructure["ssh-key"]["type"]
-    key_path = infrastructure["ssh-key"]["path"]
-    key_password = infrastructure["ssh-key"]["password"]
+    key_type = infrastructure["ssh_key"]["type"]
+    key_path = infrastructure["ssh_key"]["path"]
+    key_password = infrastructure["ssh_key"]["password"]
     pkey = ssh.get_pkey(key_type, key_path, key_password)
     host = infrastructure["host"]
     username = infrastructure["username"]
@@ -35,9 +35,9 @@ def submit(job_request: JobRequest):
 def get(job_id: str):
     job_status = JobStatus.from_dict(json.loads(persistence.get(persistence.get_job_directory(job_id))))
     infrastructure = json.loads(persistence.get(persistence.get_cluster_directory(job_status.infrastructure)))
-    key_type = infrastructure["ssh-key"]["type"]
-    key_path = infrastructure["ssh-key"]["path"]
-    key_password = infrastructure["ssh-key"]["password"]
+    key_type = infrastructure["ssh_key"]["type"]
+    key_path = infrastructure["ssh_key"]["path"]
+    key_password = infrastructure["ssh_key"]["password"]
     pkey = ssh.get_pkey(key_type, key_path, key_password)
     host = infrastructure["host"]
     username = infrastructure["username"]
