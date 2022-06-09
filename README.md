@@ -40,4 +40,4 @@ To run tests:
 pytest src/tests
 ```
 
-The examples of usage can be found in the Swagger UI in the `/ui` path.
+The examples of usage can be found in the Swagger UI `/ui` path.
