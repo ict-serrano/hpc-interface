@@ -10,7 +10,6 @@ def test_infrastructure_creation(ssh_infrastructures):
     new_infrastructure = infrastructure.create(infrastructure_request)
     assert new_infrastructure.name == data["name"]
     assert new_infrastructure.host == data["host"]
-    assert new_infrastructure.username == data["username"]
     assert new_infrastructure.hostname == data["hostname"]
     assert new_infrastructure.scheduler == data["scheduler"]
     assert persistence.get(persistence.get_cluster_directory(new_infrastructure.name))
@@ -20,7 +19,6 @@ def test_infrastructure_retrieval(ssh_infrastructures):
     new_infrastructure = infrastructure.get(data["name"])
     assert new_infrastructure.name == data["name"]
     assert new_infrastructure.host == data["host"]
-    assert new_infrastructure.username == data["username"]
     assert new_infrastructure.hostname == data["hostname"]
     assert new_infrastructure.scheduler == data["scheduler"]
 

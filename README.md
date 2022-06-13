@@ -28,6 +28,7 @@ Before running tests, please provide a fixture (fixture.infrastructure.yaml) wit
   host: some.cluster.com
   username: user_a
   hostname: some.cluster
+  scheduler: slurm
   ssh_key:
     type: ssh-ed25519
     path: /path/to/ssh/key

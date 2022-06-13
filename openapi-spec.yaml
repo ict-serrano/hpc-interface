@@ -199,6 +199,45 @@ paths:
               schema:
                 type: string
 
+  /infrastructure/{infrastructure_name}/telemetry:
+    get:
+      summary: "Get infrastructure telemetry"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: get_infrastructure_telemetry
+      parameters:
+        - name: infrastructure_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Infrastructure telemetry returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfrastructureTelemetry'
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
+        404:
+          description: Infrastructure not found
+          content:
+            application/json:
+              schema:
+                type: string
+        500:
+          description: There was an error during infrastructure telemetry retrieval
+          content:
+            application/json:
+              schema:
+                type: string
+
 components:
 
   schemas:
@@ -277,7 +316,6 @@ components:
       required:
         - name
         - host
-        - username
         - hostname
         - scheduler
       properties:
@@ -285,12 +323,60 @@ components:
           type: string
         host:
           type: string
-        username:
+        hostname:
+          type: string
+        scheduler:
+          $ref: "#/components/schemas/HPCSchedulerType"
+
+    InfrastructureTelemetry:
+      description: Infrastructure telemetry schema
+      type: object
+      required:
+        - name
+        - host
+        - hostname
+        - scheduler
+        - partitions
+      properties:
+        name:
+          type: string
+        host:
           type: string
         hostname:
           type: string
         scheduler:
           $ref: "#/components/schemas/HPCSchedulerType"
+        partitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartitionTelemetry'
+
+    PartitionTelemetry:
+      description: Partition telemetry schema
+      type: object
+      required:
+        - name
+        - total_nodes
+        - avail_nodes
+        - total_cpus
+        - avail_cpus
+        - running_jobs
+        - queued_jobs
+      properties:
+        name:
+          type: string
+        total_nodes:
+          type: integer
+        avail_nodes:
+          type: integer
+        total_cpus:
+          type: integer
+        avail_cpus:
+          type: integer
+        running_jobs:
+          type: integer
+        queued_jobs:
+          type: integer
 
     HPCSchedulerType:
       type: string
@@ -366,6 +452,13 @@ components:
         - queued
         - running
         - completed
+
+    NodeStateCode:
+      type: string
+      enum:
+        - idle
+        - allocated
+        - mixed
 
   # # In case the security mechanisms are needed to be implemented 
   # securitySchemes:

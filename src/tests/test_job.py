@@ -2,7 +2,6 @@ import json
 import pytest
 import time
 from uuid import UUID
-#from unittest import mock
 
 import hpc.api.services.job as job
 from hpc.api.openapi.models.job_request import JobRequest
@@ -22,40 +21,6 @@ def mock_ssh_command_job_status_pbs(*args, **kwargs):
 
 def mock_ssh_command_job_status_slurm(*args, **kwargs):
     return "COMPLETED", ""
-
-def test_scheduler_types_submit_command():
-    assert job.get_submit_command(HPCSchedulerType.PBS) == "qsub"
-    assert job.get_submit_command(HPCSchedulerType.SLURM) == "sbatch"
-    with pytest.raises(NotImplementedError):
-        job.get_submit_command("non-existent")
-
-def test_scheduler_types_retrieve_command():
-    assert job.get_job_status_code_command(HPCSchedulerType.PBS, "123").split()[0] == "qstat"
-    assert job.get_job_status_code_command(HPCSchedulerType.SLURM, "123").split()[0] == "scontrol"
-    with pytest.raises(NotImplementedError):
-        job.get_job_status_code_command("non-existent", "123")
-
-def test_parse_job_scheduler_id():
-    assert job.parse_job_scheduler_id(HPCSchedulerType.PBS, "123.abc") == "123.abc"
-    assert job.parse_job_scheduler_id(HPCSchedulerType.SLURM, "Submitted batch job 1763") == "1763"
-    with pytest.raises(ValueError):
-        job.parse_job_scheduler_id(HPCSchedulerType.SLURM, "does not contain numerics")
-
-def test_job_status_code_pbs():
-    assert job.get_job_status_code_pbs("C") == JobStatusCode.COMPLETED
-    assert job.get_job_status_code_pbs("Q") == JobStatusCode.QUEUED
-    assert job.get_job_status_code_pbs("R") == JobStatusCode.RUNNING
-    with pytest.raises(NotImplementedError):
-        job.get_job_status_code_pbs("non-existent")
-
-def test_job_status_code_slurm():
-    assert job.get_job_status_code_slurm("COMPLETED") == JobStatusCode.COMPLETED
-    assert job.get_job_status_code_slurm("FAILED") == JobStatusCode.COMPLETED
-    assert job.get_job_status_code_slurm("PENDING") == JobStatusCode.QUEUED
-    assert job.get_job_status_code_slurm("COMPLETING") == JobStatusCode.RUNNING
-    assert job.get_job_status_code_slurm("RUNNING") == JobStatusCode.RUNNING
-    with pytest.raises(NotImplementedError):
-        job.get_job_status_code_slurm("non-existent")
 
 def test_job_submission_pbs(ssh_infrastructures, mocker):
     mocker.patch('hpc.api.utils.ssh.exec_command', new=mock_ssh_command_new_scheduler_id_pbs)

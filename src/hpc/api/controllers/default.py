@@ -5,6 +5,7 @@ from hpc.api.openapi.models.job_request import JobRequest
 import hpc.api.services.job as job
 from hpc.api.openapi.models.infrastructure import Infrastructure
 import hpc.api.services.infrastructure as infrastructure
+import hpc.api.services.telemetry as telemetry
 from hpc.api.log import get_logger
 
 logger = get_logger(__name__)
@@ -63,4 +64,15 @@ def get_infrastructure(infrastructure_name):
         return {"message": str(ex)}, 404
     except Exception as ex:
         logger.exception("An error occurred during retrieval of the infrastructure")
+        return {"message": str(ex)}, 500
+
+def get_infrastructure_telemetry(infrastructure_name):
+    logger.debug("Retrieving infrastructure telemetry: {}".format(infrastructure_name))
+    try:
+        return telemetry.get(infrastructure_name), 200
+    except KeyError as ex:
+        logger.exception("Infrastructure not found: {}".format(infrastructure_name))
+        return {"message": str(ex)}, 404
+    except Exception as ex:
+        logger.exception("An error occurred during retrieval of the infrastructure telemetry")
         return {"message": str(ex)}, 500
