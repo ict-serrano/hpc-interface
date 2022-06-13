@@ -232,6 +232,7 @@ components:
         - kalman_filter
         - min_max_filter
         - fft_filter
+        - test_filter
 
     ServiceType:
       type: string

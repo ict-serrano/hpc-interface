@@ -23,6 +23,12 @@ class Listing():
                 name=ServiceName.FFT_FILTER,
                 version="0.0.1",
             ),
+            HPCService(
+                id="3165580e-5f5a-4c1b-94fc-05da08af725d",
+                type=ServiceType.FILTER,
+                name=ServiceName.TEST_FILTER,
+                version="0.0.1",
+            ),
         ]
 
     def get_all_service_types(self):
@@ -35,4 +41,5 @@ class Listing():
             ServiceName.KALMAN_FILTER,
             ServiceName.MIN_MAX_FILTER,
             ServiceName.FFT_FILTER,
+            ServiceName.TEST_FILTER,
         ]
