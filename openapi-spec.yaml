@@ -247,6 +247,7 @@ components:
         - host
         - username
         - hostname
+        - scheduler
         - ssh_key
       properties:
         name:
@@ -257,6 +258,8 @@ components:
           type: string
         hostname:
           type: string
+        scheduler:
+          $ref: "#/components/schemas/HPCSchedulerType"
         ssh_key:
           description: ssh key object
           type: object
@@ -276,6 +279,7 @@ components:
         - host
         - username
         - hostname
+        - scheduler
       properties:
         name:
           type: string
@@ -285,6 +289,14 @@ components:
           type: string
         hostname:
           type: string
+        scheduler:
+          $ref: "#/components/schemas/HPCSchedulerType"
+
+    HPCSchedulerType:
+      type: string
+      enum:
+        - pbs
+        - slurm
 
     SSHKeyType:
       type: string
