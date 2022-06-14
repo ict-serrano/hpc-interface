@@ -54,7 +54,6 @@ pipeline {
             }
             steps {
                 container('docker') {
-                    sh "docker version"
                     sh "docker build -t ${REGISTRY}:${VERSION} ."
                 }
             }
@@ -77,7 +76,7 @@ pipeline {
             }
             steps {
                 container('docker') {
-                    sh "docker run -ti --rm -p 8080:8080 --name ${NAME}-${VERSION} ${REGISTRY}:${VERSION}"
+                    sh "docker run --rm -p 8080:8080 --name ${NAME}-${VERSION} ${REGISTRY}:${VERSION}"
                 }
             }
         }
