@@ -27,15 +27,18 @@ pipeline {
             }
         }
         stage('Unit tests') {
-            environment {
-                HPC_GATEWAY_TEST_INFRASTRUCTURE_FIXTURE_TMPL = credentials('test_infrastructure_fixture_excess_tmpl')
-            }
             steps {
                 container('python') {
-                    withCredentials(bindings: [sshUserPrivateKey(credentialsId: 'ssh-private-key-excess', \
-                                                             keyFileVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY', \
-                                                             passphraseVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY_PASSWORD', \
-                                                             usernameVariable: 'HPC_GATEWAY_EXCESS_USERNAME')]) {
+                    withCredentials([\
+                        file(\
+                            credentialsId: 'test_infrastructure_fixture_excess_tmpl', \
+                            variable: 'HPC_GATEWAY_TEST_INFRASTRUCTURE_FIXTURE_TMPL'\
+                        ), \
+                        sshUserPrivateKey(\
+                            credentialsId: 'ssh-private-key-excess', \
+                            keyFileVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY', \
+                            passphraseVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY_PASSWORD', \
+                            usernameVariable: 'HPC_GATEWAY_EXCESS_USERNAME')]) {
                         sh 'envsubst < $HPC_GATEWAY_TEST_INFRASTRUCTURE_FIXTURE_TMPL > src/tests/fixture.infrastructure.yaml'
                         sh 'pytest src/tests'
                     }
