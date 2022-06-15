@@ -7,7 +7,8 @@ import hpc.api.utils.persistence as persistence
 
 @pytest.fixture
 def ssh_infrastructures():
-    fixture = "{}/{}".format(os.path.dirname(__file__), "fixture.infrastructure.yaml")
+    default_fixture = "{}/{}".format(os.path.dirname(__file__), "fixture.infrastructure.yaml")
+    fixture = os.getenv("HPC_GATEWAY_TEST_INFRASTRUCTURE_FIXTURE", default_fixture)
     ssh_infrastructures = []
     with open(fixture, 'r') as stream:
         ssh_infrastructures = yaml.safe_load(stream)
