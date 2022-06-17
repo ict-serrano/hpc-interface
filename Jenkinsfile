@@ -107,10 +107,9 @@ secretGenerator:
   files: [ $HPC_GATEWAY_EXCESS_PRIVATE_KEY ]
 EOF
 envsubst < ./kustomization.tmpl.yaml > ./kustomization.yaml
-kubectl apply -k .
                         '''
                     }
-                        
+                    sh "kubectl apply -k ."
                     sh "helm upgrade --install --force --wait --timeout 600s --namespace integration --set name=${CHART_NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${CHART_NAME} ./helm"
                 }
             }
