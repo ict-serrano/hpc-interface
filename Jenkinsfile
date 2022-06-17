@@ -3,14 +3,19 @@ pipeline {
         PROJECT_NAME = 'hpc-interface'
         DEPLOY = "${env.GIT_BRANCH == "origin/main" || env.GIT_BRANCH == "origin/develop" ? "true" : "false"}"
         NAME = "${env.GIT_BRANCH == "origin/main" ? "hpc-interface" : "hpc-interface-staging"}"
-        VERSION = '0.0.1'
+        DEPLOY_UVT = "${env.GIT_BRANCH == "origin/main" ? "true" : "false"}"
+        CHART_NAME = "${env.GIT_BRANCH == "origin/main" ? "hpc-interface" : "hpc-interface-staging"}"
+        VERSION = '0.1.0'
         DOMAIN = 'localhost'
         REGISTRY = 'serrano-harbor.rid-intrasoft.eu/serrano/hpc-interface'
         REGISTRY_URL = 'https://serrano-harbor.rid-intrasoft.eu/serrano'
         REGISTRY_CREDENTIAL = 'harbor-jenkins'
+        UVT_KUBERNETES_PUBLIC_ADDRESS = 'k8s.serrano.cs.uvt.ro'
+        INTEGRATION_OPERATOR_TOKEN = credentials('uvt-integration-operator-token')
     }
     agent {
         kubernetes {
+            cloud 'kubernetes'
             defaultContainer 'jnlp'
             yamlFile 'build.yaml'
         }
@@ -82,44 +87,106 @@ pipeline {
                 }
             }
         }
-        stage('Docker Deploy') {
+        stage('Deploy in INTRA Kubernetes') {
             when {
                 environment name: 'DEPLOY', value: 'true'
             }
             steps {
-                container('docker') {
-                    sh "docker run --rm -d -p 8080:8080 --name ${NAME}-${VERSION} ${REGISTRY}:${VERSION}"
+                container('helm') {
+                    sh "helm upgrade --install --force --wait --timeout 600s --namespace integration --set name=${CHART_NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${CHART_NAME} ./helm"
                 }
             }
         }
         stage('Integration Tests') {
-            steps {
-                script {
-                    echo 'Run your Integration Tests here'
-                    sleep 50
-                    try {
-                        String testName = "1. Check that app is running - 200 response code"
-                        String url = "http://localhost:8080/services"
-                        String responseCode = sh(label: testName, script: "curl -m 10 -sLI -w '%{http_code}' $url -o /dev/null", returnStdout: true)
-
-                        if (responseCode != '200') {
-                            error("$testName: Returned status code = $responseCode when calling $url")
-                        }
-                    } catch (ignored) {
-                        currentBuild.result = 'FAILURE'
-                        echo "Integration Tests failed"
-                    }
-                }
-            }
-        }
-        stage('Docker Undeploy') {
             when {
                 environment name: 'DEPLOY', value: 'true'
             }
             steps {
-                container('docker') {
-                    // don't fail if container was already stopped
-                    sh "docker stop ${NAME}-${VERSION} || true"
+                container('java') {
+                    script {
+                        echo 'Running Integration Tests'
+                        //sleep 20 // Sleep is not required if the readiness probe is enabled
+                        try {
+                            String testName = "1. Check that app is running - 200 response code"
+                            String url = "http://${CHART_NAME}-${PROJECT_NAME}.integration:8080/services"
+                            String responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
+
+                            if (responseCode != '200') {
+                                error("$testName: Returned status code = $responseCode when calling $url")
+                            }
+
+/*                            testName = '2. Create record - 201 response code'
+                            url = "http://${CHART_NAME}-${PROJECT_NAME}.integration:8080/api/v1/puppies/"
+                            responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"name":"Jack","age":3,"breed":"shepherd","color":"brown"}' -o /dev/null""", returnStdout: true)
+
+                            if (responseCode != '201') {
+                                 error("$testName: Returned status code = $responseCode when calling $url")
+                            }
+
+                            testName = '3. Validate stored records'
+                            url = "http://${CHART_NAME}-${PROJECT_NAME}.integration:8080/api/v1/puppies"
+                            String responseBody = sh(label: testName, script: """curl -m 10 -sL $url""", returnStdout: true)
+
+                            if (responseBody != '[{"name":"Jack","age":3,"breed":"shepherd","color":"brown"}]') {
+                                error("$testName: Unexpected response body = $responseBody when calling $url")
+                            }*/
+
+//                Other examples from CRUD methods can be found below:
+//
+//                testName = "4. Look for record that doesn't exist - 404 response code"
+//                url = "http://integration-test-sample:8090/records/1"
+//                responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
+//
+//                if (responseCode != '404') {
+//                    error("$testName: Returned status code = $responseCode when calling $url")
+//                }
+//
+//                testName = '5. Create record - 200 response code'
+//                url = "http://integration-test-sample:8090/records"
+//                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"id":1,"balance":10.00}' -o /dev/null""", returnStdout: true)
+//
+//                if (responseCode != '200') {
+//                    error("$testName: Returned status code = $responseCode when calling $url")
+//                }
+//
+//                testName = '6. Retrieve record - JSON body'
+//                url = "http://integration-test-sample:8090/records/1"
+//                responseBody = sh(label: testName, script: """curl -m 10 -sL $url --header 'Content-Type: application/json'""", returnStdout: true)
+//
+//                if (responseBody != '{"id":1,"balance":10.00}') {
+//                    error("$testName: Unexpected response body = $responseBody when calling $url")
+//                }
+//
+//                testName = '7. Update record - 200 response code'
+//                url = "http://integration-test-sample:8090/records/1/recharges"
+//                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"amount":10.00}' -o /dev/null""", returnStdout: true)
+//
+//                if (responseCode != '200') {
+//                    error("$testName: Returned status code = $responseCode when calling $url")
+//                }
+//
+//                testName = '8. Check updated record - JSON body'
+//                url = "http://integration-test-sample:8090/records/1"
+//                responseBody = sh(label: testName, script: """curl -m 10 -sL $url --header 'Content-Type: application/json'""", returnStdout: true)
+//
+//                if (responseBody != '{"id":1,"balance":20.00}') {
+//                    error("$testName: Unexpected response body = $responseBody when calling $url")
+//                }
+                        } catch (ignored) {
+                            currentBuild.result = 'FAILURE'
+                            echo "Integration Tests failed"
+                        }
+                    }
+                }
+            }
+        }
+        stage('Cleanup INTRA Deployment') {
+            when {
+                environment name: 'DEPLOY', value: 'true'
+            }
+            steps {
+                container('helm') {
+                    sh "helm uninstall ${CHART_NAME} --namespace integration"
                 }
             }
         }
