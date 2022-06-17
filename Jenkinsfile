@@ -97,13 +97,8 @@ pipeline {
                         sshUserPrivateKey(\
                             credentialsId: 'ssh-private-key-excess', \
                             keyFileVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY')]) {
-                        sh '''kubectl create secret generic hpc-interface-ssh-keys \
-                        --namespace="integration" \
-                        --from-file="$HPC_GATEWAY_EXCESS_PRIVATE_KEY" \
-                        --save-config \
-                        --dry-run=client \
-                        -o yaml | \
-                        kubectl apply -f -'''
+                        sh 'kubectl delete secret hpc-interface-ssh-keys --namespace="integration"'
+                        sh 'kubectl create secret generic hpc-interface-ssh-keys --namespace="integration" --from-file="$HPC_GATEWAY_EXCESS_PRIVATE_KEY"'
                     }
                     sh "helm upgrade --install --force --wait --timeout 600s --namespace integration --set name=${CHART_NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${CHART_NAME} ./helm"
                 }
