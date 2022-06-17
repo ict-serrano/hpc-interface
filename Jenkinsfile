@@ -103,13 +103,12 @@ pipeline {
             }
             steps {
                 container('java') {
-                    sh "curl http://${CHART_NAME}-${PROJECT_NAME}.integration:8080/services"
                     script {
                         echo 'Running Integration Tests'
                         //sleep 20 // Sleep is not required if the readiness probe is enabled
                         try {
                             String testName = "1. Check that app is running - 200 response code"
-                            String url = "http://${CHART_NAME}-${PROJECT_NAME}.integration:8080/services"
+                            String url = "http://${CHART_NAME}.integration:8080/services"
                             String responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
 
                             if (responseCode != '200') {
