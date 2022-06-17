@@ -47,6 +47,14 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: hpc_interface_ssh_keys
+              mountPath: /etc/ssh/hpc-interface/
+              readOnly: true
+      volumes:
+        - name: hpc_interface_ssh_keys
+          secret:
+            secretName: hpc_interface_ssh_keys
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

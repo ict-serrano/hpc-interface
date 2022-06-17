@@ -93,6 +93,24 @@ pipeline {
             }
             steps {
                 container('helm') {
+                    withCredentials([\
+                        sshUserPrivateKey(\
+                            credentialsId: 'ssh-private-key-excess', \
+                            keyFileVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY')]) {
+                        sh """
+export HPC_GATEWAY_SSH_KEYS=$HPC_GATEWAY_EXCESS_PRIVATE_KEY
+cat <<EOF > ./kustomization.yaml
+namespace: integration
+generatorOptions:
+  disableNameSuffixHash: true
+secretGenerator:
+- name: hpc_interface_ssh_keys
+  files: [ $HPC_GATEWAY_SSH_KEYS ]
+EOF
+kubectl apply -k .
+                        """
+                    }
+                        
                     sh "helm upgrade --install --force --wait --timeout 600s --namespace integration --set name=${CHART_NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${CHART_NAME} ./helm"
                 }
             }
