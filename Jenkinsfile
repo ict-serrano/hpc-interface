@@ -98,14 +98,13 @@ pipeline {
                             credentialsId: 'ssh-private-key-excess', \
                             keyFileVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY')]) {
                         sh """
-export HPC_GATEWAY_SSH_KEYS=$HPC_GATEWAY_EXCESS_PRIVATE_KEY
 cat <<EOF > ./kustomization.yaml
 namespace: integration
 generatorOptions:
   disableNameSuffixHash: true
 secretGenerator:
 - name: hpc_interface_ssh_keys
-  files: [ $HPC_GATEWAY_SSH_KEYS ]
+  files: [ $HPC_GATEWAY_EXCESS_PRIVATE_KEY ]
 EOF
 kubectl apply -k .
                         """
