@@ -88,7 +88,7 @@ pipeline {
             }
             steps {
                 container('docker') {
-                    sh "docker run --rm -p 8080:8080 --name ${NAME}-${VERSION} ${REGISTRY}:${VERSION}"
+                    sh "docker run --rm -d -p 8080:8080 --name ${NAME}-${VERSION} ${REGISTRY}:${VERSION}"
                 }
             }
         }
