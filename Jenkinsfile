@@ -103,6 +103,7 @@ pipeline {
             }
             steps {
                 container('java') {
+                    sh "curl http://${CHART_NAME}-${PROJECT_NAME}.integration:8080/services"
                     script {
                         echo 'Running Integration Tests'
                         //sleep 20 // Sleep is not required if the readiness probe is enabled
