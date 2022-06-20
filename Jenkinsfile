@@ -26,7 +26,7 @@ pipeline {
                 container('python') {
                     sh '/usr/local/bin/python -m pip install --upgrade pip'
                     sh 'pip install -r requirements.txt'
-                    sh 'apt update -y && apt install -y default-jre wget gettext-base'
+                    sh 'apt update -y && apt install -y default-jre wget curl jq gettext-base'
                     sh './generate.sh'
                 }
             }
@@ -109,81 +109,74 @@ pipeline {
                 environment name: 'DEPLOY', value: 'true'
             }
             steps {
-                container('java') {
-                    script {
-                        echo 'Running Integration Tests'
-                        //sleep 20 // Sleep is not required if the readiness probe is enabled
-                        try {
-                            String testName = "1. Check that app is running - 200 response code"
-                            String url = "http://${CHART_NAME}.integration:8080/services"
-                            String responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
+                container('python') {
+                    withCredentials([\
+                        file(\
+                            credentialsId: 'test_infrastructure_fixture_excess_tmpl', \
+                            variable: 'HPC_GATEWAY_TEST_INFRASTRUCTURE_FIXTURE_TMPL'\
+                        ), \
+                        sshUserPrivateKey(\
+                            credentialsId: 'ssh-private-key-excess', \
+                            keyFileVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY', \
+                            passphraseVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY_PASSWORD', \
+                            usernameVariable: 'HPC_GATEWAY_EXCESS_USERNAME')]) {
+                        
+                        sh 'envsubst < $HPC_GATEWAY_TEST_INFRASTRUCTURE_FIXTURE_TMPL > fixture.infrastructure.yaml'
+                        sh 'curl -L --output yq https://github.com/mikefarah/yq/releases/download/v4.25.2/yq_linux_amd64 && chmod 700 yq'
+                        script {
+                            echo 'Running Integration Tests'
+                            try {
+                                String testName = ""
+                                String fixture = ""
+                                String url = ""
+                                String response = ""
+                                String responseCode = ""
+                                String responseBody = ""
 
-                            if (responseCode != '200') {
-                                error("$testName: Returned status code = $responseCode when calling $url")
+                                testName = "0. Check that the SSH private key exists"
+                                fixture = "fixture.infrastructure.yaml"
+                                response = sh(label: testName, script: "ls `./yq '.[1].ssh_key.path' $fixture`", returnStdout: true)
+                                echo "$testName: $response"
+
+                                testName = "1. Check that app is running - 200 response code"
+                                url = "http://${CHART_NAME}.integration:8080/services"
+                                responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
+
+                                if (responseCode != '200') {
+                                    error("$testName: Returned status code = $responseCode when calling $url")
+                                }
+
+                                testName = '2. Create infrastructure - 201 response code'
+                                String infrastructure_data = sh(label: testName, script: """./yq e '.[1]' -o=json $fixture""", returnStdout: true)
+                                url = "http://${CHART_NAME}.integration:8080/infrastructure"
+                                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw "$infrastructure_data" -o /dev/null""", returnStdout: true)
+
+                                if (responseCode != '201') {
+                                    error("$testName: Returned status code = $responseCode when calling $url")
+                                }
+
+                                testName = "3. Check new infrastructure - 200 response code"
+                                url = "http://${CHART_NAME}.integration:8080/infrastructure/excess_slurm"
+                                responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
+
+                                if (responseCode != '200') {
+                                    error("$testName: Returned status code = $responseCode when calling $url")
+                                }
+
+                                testName = "4. Check infrastructure telemetry - 200 response code"
+                                url = "http://${CHART_NAME}.integration:8080/infrastructure/excess_slurm/telemetry"
+                                responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
+
+                                if (responseCode != '200') {
+                                    error("$testName: Returned status code = $responseCode when calling $url")
+                                }
+                            } catch (ignored) {
+                                currentBuild.result = 'FAILURE'
+                                echo "Integration Tests failed"
                             }
-
-/*                            testName = '2. Create record - 201 response code'
-                            url = "http://${CHART_NAME}-${PROJECT_NAME}.integration:8080/api/v1/puppies/"
-                            responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"name":"Jack","age":3,"breed":"shepherd","color":"brown"}' -o /dev/null""", returnStdout: true)
-
-                            if (responseCode != '201') {
-                                 error("$testName: Returned status code = $responseCode when calling $url")
-                            }
-
-                            testName = '3. Validate stored records'
-                            url = "http://${CHART_NAME}-${PROJECT_NAME}.integration:8080/api/v1/puppies"
-                            String responseBody = sh(label: testName, script: """curl -m 10 -sL $url""", returnStdout: true)
-
-                            if (responseBody != '[{"name":"Jack","age":3,"breed":"shepherd","color":"brown"}]') {
-                                error("$testName: Unexpected response body = $responseBody when calling $url")
-                            }*/
-
-//                Other examples from CRUD methods can be found below:
-//
-//                testName = "4. Look for record that doesn't exist - 404 response code"
-//                url = "http://integration-test-sample:8090/records/1"
-//                responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
-//
-//                if (responseCode != '404') {
-//                    error("$testName: Returned status code = $responseCode when calling $url")
-//                }
-//
-//                testName = '5. Create record - 200 response code'
-//                url = "http://integration-test-sample:8090/records"
-//                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"id":1,"balance":10.00}' -o /dev/null""", returnStdout: true)
-//
-//                if (responseCode != '200') {
-//                    error("$testName: Returned status code = $responseCode when calling $url")
-//                }
-//
-//                testName = '6. Retrieve record - JSON body'
-//                url = "http://integration-test-sample:8090/records/1"
-//                responseBody = sh(label: testName, script: """curl -m 10 -sL $url --header 'Content-Type: application/json'""", returnStdout: true)
-//
-//                if (responseBody != '{"id":1,"balance":10.00}') {
-//                    error("$testName: Unexpected response body = $responseBody when calling $url")
-//                }
-//
-//                testName = '7. Update record - 200 response code'
-//                url = "http://integration-test-sample:8090/records/1/recharges"
-//                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"amount":10.00}' -o /dev/null""", returnStdout: true)
-//
-//                if (responseCode != '200') {
-//                    error("$testName: Returned status code = $responseCode when calling $url")
-//                }
-//
-//                testName = '8. Check updated record - JSON body'
-//                url = "http://integration-test-sample:8090/records/1"
-//                responseBody = sh(label: testName, script: """curl -m 10 -sL $url --header 'Content-Type: application/json'""", returnStdout: true)
-//
-//                if (responseBody != '{"id":1,"balance":20.00}') {
-//                    error("$testName: Unexpected response body = $responseBody when calling $url")
-//                }
-                        } catch (ignored) {
-                            currentBuild.result = 'FAILURE'
-                            echo "Integration Tests failed"
                         }
                     }
+                        
                 }
             }
         }
@@ -197,74 +190,5 @@ pipeline {
                 }
             }
         }
-
-// TODO: Clear any redundant services
-
-//         stage('Kubernetes Deploy') {
-//             when {
-//                 environment name: 'DEPLOY', value: 'true'
-//             }
-//             steps {
-//                 container('helm') {
-//                     sh "helm upgrade --install --force  --namespace integration --set name=${NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${NAME} ./helm"
-//                 }
-//             }
-//         }
-//        stage('Integration Tests') {
-//            echo 'Run your Integration Tests here'
-//            sleep 50
-//            try {
-//                String testName = "1. Check that app is running - 200 response code"
-//                String url = "http://integration-test-sample:8090/"
-//                String responseCode = sh(label: testName, script: "curl -m 10 -sLI -w '%{http_code}' $url -o /dev/null", returnStdout: true)
-//
-//                if (responseCode != '200') {
-//                    error("$testName: Returned status code = $responseCode when calling $url")
-//                }
-//
-//                testName = "2. Look for record that doesn't exist - 404 response code"
-//                url = "http://integration-test-sample:8090/records/1"
-//                responseCode = sh(label: testName, script: "curl -m 10 -sLI -w '%{http_code}' $url -o /dev/null", returnStdout: true)
-//
-//                if (responseCode != '404') {
-//                    error("$testName: Returned status code = $responseCode when calling $url")
-//                }
-//
-//                testName = '3. Create record - 200 response code'
-//                url = "http://integration-test-sample:8090/records"
-//                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"id":1,"balance":10.00}' -o /dev/null""", returnStdout: true)
-//
-//                if (responseCode != '200') {
-//                    error("$testName: Returned status code = $responseCode when calling $url")
-//                }
-//
-//                testName = '4. Retrieve record - JSON body'
-//                url = "http://integration-test-sample:8090/records/1"
-//                String responseBody = sh(label: testName, script: """curl -m 10 -sL $url --header 'Content-Type: application/json'""", returnStdout: true)
-//
-//                if (responseBody != '{"id":1,"balance":10.00}') {
-//                    error("$testName: Unexpected response body = $responseBody when calling $url")
-//                }
-//
-//                testName = '5. Update record - 200 response code'
-//                url = "http://integration-test-sample:8090/records/1/recharges"
-//                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"amount":10.00}' -o /dev/null""", returnStdout: true)
-//
-//                if (responseCode != '200') {
-//                    error("$testName: Returned status code = $responseCode when calling $url")
-//                }
-//
-//                testName = '6. Check updated record - JSON body'
-//                url = "http://integration-test-sample:8090/records/1"
-//                responseBody = sh(label: testName, script: """curl -m 10 -sL $url --header 'Content-Type: application/json'""", returnStdout: true)
-//
-//                if (responseBody != '{"id":1,"balance":20.00}') {
-//                    error("$testName: Unexpected response body = $responseBody when calling $url")
-//                }
-//            } catch (ignored) {
-//                currentBuild.result = 'FAILURE'
-//                echo "Integration Tests failed"
-//            }
-//        }
     }
 }
