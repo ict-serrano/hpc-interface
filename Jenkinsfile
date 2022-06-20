@@ -123,20 +123,15 @@ pipeline {
                         
                         sh 'envsubst < $HPC_GATEWAY_TEST_INFRASTRUCTURE_FIXTURE_TMPL > fixture.infrastructure.yaml'
                         sh 'curl -L --output yq https://github.com/mikefarah/yq/releases/download/v4.25.2/yq_linux_amd64 && chmod 700 yq'
+                        sh 'KEY_PATH="/etc/ssh/hpc-interface/ssh-key-HPC_GATEWAY_EXCESS_PRIVATE_KEY" ./yq -i ".[].ssh_key.path = strenv(KEY_PATH)" fixture.infrastructure.yaml'
                         script {
                             echo 'Running Integration Tests'
                             try {
                                 String testName = ""
                                 String fixture = ""
                                 String url = ""
-                                String response = ""
                                 String responseCode = ""
                                 String responseBody = ""
-
-                                testName = "0. Check that the SSH private key exists"
-                                fixture = "fixture.infrastructure.yaml"
-                                response = sh(label: testName, script: "ls `./yq '.[1].ssh_key.path' $fixture`", returnStdout: true)
-                                echo "$testName: $response"
 
                                 testName = "1. Check that app is running - 200 response code"
                                 url = "http://${CHART_NAME}.integration:8080/services"
@@ -147,9 +142,10 @@ pipeline {
                                 }
 
                                 testName = '2. Create infrastructure - 201 response code'
-                                String infrastructure_data = sh(label: testName, script: """./yq e '.[1]' -o=json $fixture""", returnStdout: true)
+                                fixture = "fixture.infrastructure.yaml"
+                                String infrastructure_data = sh(label: testName, script: """./yq e '.[1]' -I=0 -o=json $fixture""", returnStdout: true)
                                 url = "http://${CHART_NAME}.integration:8080/infrastructure"
-                                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw "$infrastructure_data" -o /dev/null""", returnStdout: true)
+                                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw \'$infrastructure_data\' -o /dev/null""", returnStdout: true)
 
                                 if (responseCode != '201') {
                                     error("$testName: Returned status code = $responseCode when calling $url")
