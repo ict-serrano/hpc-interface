@@ -55,7 +55,7 @@ paths:
             schema:
               $ref: "#/components/schemas/JobRequest"
       responses:
-        200:
+        201:
           description: Job was submitted successfully
           content:
             application/json:
@@ -135,7 +135,7 @@ paths:
             schema:
               $ref: "#/components/schemas/Infrastructure"
       responses:
-        200:
+        201:
           description: Infrastructure was created successfully
           content:
             application/json:

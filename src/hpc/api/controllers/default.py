@@ -24,7 +24,7 @@ def submit_new_job(body):
         return {"Incorrect input, expected JSON"}, 400
 
     try:
-        return job.submit(job_request), 200
+        return job.submit(job_request), 201
     except Exception as ex:
         logger.exception("An error occurred during submission of a new job")
         return {"message": str(ex)}, 500
@@ -50,7 +50,7 @@ def create_new_infrastructure(body):
         return {"Incorrect input, expected JSON"}, 400
 
     try:
-        return infrastructure.create(infrastructure_request), 200
+        return infrastructure.create(infrastructure_request), 201
     except Exception as ex:
         logger.exception("An error occurred during creation of a new infrastructure")
         return {"message": str(ex)}, 500
