@@ -177,7 +177,7 @@ pipeline {
 
                                 testName = '6. Validate execution'
                                 url = "http://${CHART_NAME}.integration:8080/job"
-                                responseBody = sh(label: testName, script: """curl -m 10 -sL --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "params": {}, "services": [{ "name": "test_filter", "version": "0.0.1" }]}' -o /dev/null""", returnStdout: true)
+                                responseBody = sh(label: testName, script: """curl -m 10 -sL --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "params": {}, "services": [{ "name": "test_filter", "version": "0.0.1" }]}'""", returnStdout: true)
                                 job_uuid = sh(label: testName, script: """echo $responseBody | jq -r '.id'""", returnStdout: true)
                                 
                                 url = "http://${CHART_NAME}.integration:8080/job/$job_uuid"
