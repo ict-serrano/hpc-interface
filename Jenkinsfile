@@ -187,7 +187,7 @@ pipeline {
                                 }
                                 responseBody = sh(label: testName, script: """curl -m 10 -sL $url""", returnStdout: true)
                                 job_status = sh(label: testName, script: """echo \'$responseBody\' | jq -r '.status'""", returnStdout: true)
-                                if ( !(job_status in ["queued", "running", "completed"]) ) {
+                                if ( !["queued", "running", "completed"].contains(job_status) ) {
                                     error("$testName: Unexpected response body = $responseBody when calling $url")
                                 }
 
