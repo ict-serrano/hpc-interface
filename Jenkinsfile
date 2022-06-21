@@ -181,7 +181,7 @@ pipeline {
                                 job_uuid = sh(label: testName, script: """echo \'$responseBody\' | jq -r '.id'""", returnStdout: true)
                                 
                                 url = "http://${CHART_NAME}.integration:8080/job/$job_uuid"
-                                responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
+                                responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' -o /dev/null $url", returnStdout: true)
                                 if (responseCode != '200') {
                                     error("$testName: Returned status code = $responseCode when calling $url")
                                 }
