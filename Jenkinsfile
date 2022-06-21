@@ -166,6 +166,31 @@ pipeline {
                                 if (responseCode != '200') {
                                     error("$testName: Returned status code = $responseCode when calling $url")
                                 }
+
+                                testName = '5. Submit a job - 201 response code'
+                                url = "http://${CHART_NAME}.integration:8080/job"
+                                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "params": {}, "services": [{ "name": "test_filter", "version": "0.0.1" }]}' -o /dev/null""", returnStdout: true)
+
+                                if (responseCode != '201') {
+                                    error("$testName: Returned status code = $responseCode when calling $url")
+                                }
+
+                                testName = '6. Validate execution'
+                                url = "http://${CHART_NAME}.integration:8080/job"
+                                responseBody = sh(label: testName, script: """curl -m 10 -sL --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "params": {}, "services": [{ "name": "test_filter", "version": "0.0.1" }]}' -o /dev/null""", returnStdout: true)
+                                job_uuid = sh(label: testName, script: """echo $responseBody | jq -r '.id'""", returnStdout: true)
+                                
+                                url = "http://${CHART_NAME}.integration:8080/job/$job_uuid"
+                                responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' $url -o /dev/null", returnStdout: true)
+                                if (responseCode != '200') {
+                                    error("$testName: Returned status code = $responseCode when calling $url")
+                                }
+                                responseBody = sh(label: testName, script: """curl -m 10 -sL $url""", returnStdout: true)
+                                job_status = sh(label: testName, script: """echo $responseBody | jq -r '.status'""", returnStdout: true)
+                                if ( !(job_status in ["queued", "running", "completed"]) ) {
+                                    error("$testName: Unexpected response body = $responseBody when calling $url")
+                                }
+
                             } catch (ignored) {
                                 currentBuild.result = 'FAILURE'
                                 echo "Integration Tests failed"
