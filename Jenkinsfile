@@ -185,12 +185,7 @@ pipeline {
                                 if (responseCode != '200') {
                                     error("$testName: Returned status code = $responseCode when calling $url")
                                 }
-                                responseBody = sh(label: testName, script: """curl -m 10 -sL $url""", returnStdout: true)
-                                job_status = sh(label: testName, script: """echo \'$responseBody\' | jq -r '.status'""", returnStdout: true)
-                                if ( !["queued", "running", "completed"].contains(job_status) ) {
-                                    error("$testName: Unexpected response body = $responseBody when calling $url")
-                                }
-
+                                
                             } catch (ignored) {
                                 currentBuild.result = 'FAILURE'
                                 echo "Integration Tests failed"
