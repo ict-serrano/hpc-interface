@@ -56,7 +56,7 @@ class SlurmHelper():
         return result
 
     def get_job_status_code_command(self, scheduler_id):
-        return "scontrol show job -dd {} | grep -o 'JobState=[A-Z]*'".format(scheduler_id)
+        return "scontrol show job -dd {} | grep -o 'JobState=[A-Z]*' | cut -d '=' -f 2".format(scheduler_id)
 
     def get_job_status_code(self, status):
         if status in ["COMPLETED", "FAILED"]:
