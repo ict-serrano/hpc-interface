@@ -222,7 +222,7 @@ pipeline {
                         sh 'kubectl delete secret hpc-interface-ssh-keys --namespace="integration" || true'
                         sh 'kubectl create secret generic hpc-interface-ssh-keys --namespace="integration" --from-file="$HPC_GATEWAY_EXCESS_PRIVATE_KEY" || true'
                     }
-                    sh "helm upgrade --install --force --wait --timeout 600s --kube-context=kubernetes-uvt --namespace integration --set name=${CHART_NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${CHART_NAME} ./helm-uvt"
+                    sh "helm upgrade --debug --cleanup-on-fail --install --force --wait --timeout 600s --kube-context=kubernetes-uvt --namespace integration --set name=${CHART_NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${CHART_NAME} ./helm-uvt"
                 }
             }
         }
