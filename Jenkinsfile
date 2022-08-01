@@ -219,8 +219,8 @@ pipeline {
                         sh "kubectl config set-cluster kubernetes-uvt --certificate-authority=uvt.cer --embed-certs=true --server=https://${UVT_KUBERNETES_PUBLIC_ADDRESS}:6443"
                         sh "kubectl config set-credentials integration-operator --token=${INTEGRATION_OPERATOR_TOKEN}"
                         sh "kubectl config set-context kubernetes-uvt --cluster=kubernetes-uvt --user=integration-operator"
-                        sh 'kubectl delete secret hpc-interface-ssh-keys --namespace="integration" || true'
-                        sh 'kubectl create secret generic hpc-interface-ssh-keys --namespace="integration" --from-file="$HPC_GATEWAY_EXCESS_PRIVATE_KEY" || true'
+                        sh 'kubectl delete secret hpc-interface-ssh-keys --context="kubernetes-uvt" --namespace="integration" || true'
+                        sh 'kubectl create secret generic hpc-interface-ssh-keys --context="kubernetes-uvt" --namespace="integration" --from-file="$HPC_GATEWAY_EXCESS_PRIVATE_KEY" || true'
                     }
                     sh "helm upgrade --debug --cleanup-on-fail --install --force --wait --timeout 600s --kube-context=kubernetes-uvt --namespace integration --set name=${CHART_NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${CHART_NAME} ./helm-uvt"
                 }
