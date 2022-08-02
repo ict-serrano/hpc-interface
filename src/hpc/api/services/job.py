@@ -18,6 +18,8 @@ def submit(job_request: JobRequest):
     username = infrastructure["username"]
     scheduler = infrastructure["scheduler"]
     helper = SchedulerHelperFactory.helper(scheduler)
+
+    # TODO: Change to template and EOF submission, once the HPC services are deployed
     command = "cd test/ && {} test-job-openmpi-example.sh".format(helper.get_submit_command())
 
     stdout, stderr = ssh.exec_command(host, username, pkey, command)

@@ -1,0 +1,54 @@
+#!/bin/bash
+
+# Choosing the kernel
+icase={{ params.icase }}
+
+# Signal ID for filtering
+id={{ params.id }}
+
+# Applying filter (1: filter apply, 0: filter does not apply)
+Kalman_Filter={{ params.Kalman_Filter }}
+FFT_Filter={{ params.FFT_Filter }}
+MinMaxTransform={{ params.MinMaxTransform }}
+
+# Kalman filter parameters
+R={{ params.R }}
+R_range_offset={{ params.R_range_offset }}
+R_range_endset={{ params.R_range_endset }}
+
+
+# Path for input and output data
+workspace={{ params.workspace }}
+readInputData={{ params.readInputData }}
+binaryDataSignalPath={{ params.binaryDataSignalPath }}
+kalmanDataPath={{ params.kalmanDataPath }}
+fftDataPath={{ params.fftDataPath }}
+minMaxDataPath={{ params.minMaxDataPath }}
+binaryDataKNN={{ params.binaryDataKNN }}
+binaryDataDTWx={{ params.binaryDataDTWx }}
+binaryDataDTWy={{ params.binaryDataDTWy }}
+binaryBSholes={{ params.binaryBSholes }}
+     
+
+# Parallelization parameters
+num_MPI_Procs={{ params.num_MPI_Procs }}
+numCommunicatoi={{ params.numCommunicatoi }}
+num_Thread={{ params.num_Thread }}
+
+
+# Hardware configuration
+num_numa={{ params.num_numa }}
+num_core_numa={{ params.num_core_numa }}
+
+exe={{ params.exe }}
+
+mpirun --oversubscribe \
+    -np $num_MPI_Procs \
+    $exe \
+    $icase $id $R \
+    $num_Thread $num_numa $num_core_numa \
+    $workspace \
+    $readInputData $binaryDataSignalPath \
+    $kalmanDataPath $fftDataPath $minMaxDataPath \
+    $binaryDataKNN $binaryDataDTWx $binaryDataDTWy $binaryBSholes \
+    $Kalman_Filter $FFT_Filter $MinMaxTransform 
