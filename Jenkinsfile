@@ -185,6 +185,25 @@ pipeline {
                                 if (responseCode != '200') {
                                     error("$testName: Returned status code = $responseCode when calling $url")
                                 }
+
+                                testName = '7. Submit a file transfer request - 201 response code'
+                                url = "http://${CHART_NAME}.integration:8080/data"
+                                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "src": "https://raw.githubusercontent.com/Ovi/DummyJSON/master/package.json", "dst": "/tmp/package.json"}' -o /dev/null""", returnStdout: true)
+
+                                if (responseCode != '201') {
+                                    error("$testName: Returned status code = $responseCode when calling $url")
+                                }
+
+                                testName = '8. Validate file transfer'
+                                url = "http://${CHART_NAME}.integration:8080/data"
+                                responseBody = sh(label: testName, script: """curl -m 10 -sL --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "src": "https://raw.githubusercontent.com/Ovi/DummyJSON/master/package.json", "dst": "/tmp/package.json"}'""", returnStdout: true)
+                                ft_uuid = sh(label: testName, script: """echo \'$responseBody\' | jq -r '.id'""", returnStdout: true)
+                                
+                                url = "http://${CHART_NAME}.integration:8080/data/$ft_uuid"
+                                responseCode = sh(label: testName, script: "curl -m 10 -sL -w '%{http_code}' -o /dev/null $url", returnStdout: true)
+                                if (responseCode != '200') {
+                                    error("$testName: Returned status code = $responseCode when calling $url")
+                                }
                                 
                             } catch (ignored) {
                                 currentBuild.result = 'FAILURE'
