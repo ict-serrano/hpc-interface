@@ -7,12 +7,16 @@ from hpc.api.openapi.models.infrastructure import Infrastructure
 import hpc.api.services.infrastructure as infrastructure
 import hpc.api.services.telemetry as telemetry
 from hpc.api.log import get_logger
+from hpc.api.openapi.models.file_transfer_request import FileTransferRequest
+import hpc.api.services.data_manager as data_manager
 
 logger = get_logger(__name__)
+
 
 def get_all_services():
     listing = Listing()
     return listing.get_all_services(), 200
+
 
 def submit_new_job(body):
     logger.debug("Submitting a new job")
@@ -29,6 +33,7 @@ def submit_new_job(body):
         logger.exception("An error occurred during submission of a new job")
         return {"message": str(ex)}, 500
 
+
 def get_job_status(job_id):
     logger.debug("Retrieving job status: {}".format(job_id))
     try:
@@ -39,6 +44,7 @@ def get_job_status(job_id):
     except Exception as ex:
         logger.exception("An error occurred during retrieval of the job")
         return {"message": str(ex)}, 500
+
 
 def create_new_infrastructure(body):
     logger.debug("Creating a new infrastructure")
@@ -55,6 +61,7 @@ def create_new_infrastructure(body):
         logger.exception("An error occurred during creation of a new infrastructure")
         return {"message": str(ex)}, 500
 
+
 def get_infrastructure(infrastructure_name):
     logger.debug("Retrieving infrastructure: {}".format(infrastructure_name))
     try:
@@ -66,6 +73,7 @@ def get_infrastructure(infrastructure_name):
         logger.exception("An error occurred during retrieval of the infrastructure")
         return {"message": str(ex)}, 500
 
+
 def get_infrastructure_telemetry(infrastructure_name):
     logger.debug("Retrieving infrastructure telemetry: {}".format(infrastructure_name))
     try:
@@ -75,4 +83,32 @@ def get_infrastructure_telemetry(infrastructure_name):
         return {"message": str(ex)}, 404
     except Exception as ex:
         logger.exception("An error occurred during retrieval of the infrastructure telemetry")
+        return {"message": str(ex)}, 500
+
+
+def transfer_remote_file(body):
+    logger.debug("Transferring a file")
+    logger.debug(body)
+
+    if connexion.request.is_json:
+        ft_request = FileTransferRequest.from_dict(connexion.request.get_json())
+    else:
+        return {"Incorrect input, expected JSON"}, 400
+
+    try:
+        return data_manager.transfer(ft_request), 201
+    except Exception as ex:
+        logger.exception("An error occurred during transferring a file")
+        return {"message": str(ex)}, 500
+
+
+def get_file_transfer_status(file_transfer_id):
+    logger.debug("Retrieving file transfer: {}".format(file_transfer_id))
+    try:
+        return data_manager.get(file_transfer_id), 200
+    except KeyError as ex:
+        logger.exception("File transfer not found: {}".format(file_transfer_id))
+        return {"message": str(ex)}, 404
+    except Exception as ex:
+        logger.exception("An error occurred during retrieval of the file transfer")
         return {"message": str(ex)}, 500

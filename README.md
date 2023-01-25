@@ -42,3 +42,17 @@ pytest src/tests
 ```
 
 The examples of usage can be found in the Swagger UI `/ui` path.
+
+## Data management
+
+One can upload remote data into the target cluster via `/data` API call of the HPC interface. The list of supported protocols is the following:
+
+- http, https
+- ftp
+- s3
+
+The format for the source file is `protocol://domain/path-to-file`. Omitting `protocol` will raise an exception.
+
+### Performance and storage considerations
+
+The HPC interface will firstly copy the source file into its own filesystem and then upload it into the filesystem of HPC cluster via SFTP. The reason for this approach is that it is not often possible to make HTTP and S3 calls from an HPC infrastructure due to strict firewall rules, and only a certain endpoints are open, such as SSH and GridFTP. Therefore, one should consider the performance implications of a copy of the source file, e.g. transfer time from source to HPC interface and from the interface to HPC infrastructure. It should be noted that the HPC interface itself may have a limited storage capacity, therefore one should consult the deployer of the HPC interface on the maximum possible size of source file to be transferred. 
