@@ -238,6 +238,86 @@ paths:
               schema:
                 type: string
 
+  # data transfers
+  /data:
+    post:
+      summary: "Transfer a remote file to the target infrastructure (currently blocking)"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: transfer_remote_file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileTransferRequest"
+      responses:
+        201:
+          description: File transferred successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileTransferStatus"
+        400:
+          description: Invalid data request
+          content:
+            application/json:
+              schema:
+                type: string
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
+        500:
+          description: There was an error during file transfer
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /data/{file_transfer_id}:
+    get:
+      summary: "Get file transfer status"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: get_file_transfer_status
+      parameters:
+        - name: file_transfer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: File transfer status returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileTransferStatus'
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
+        404:
+          description: File transfer not found
+          content:
+            application/json:
+              schema:
+                type: string
+        500:
+          description: There was an error during file transfer retrieval
+          content:
+            application/json:
+              schema:
+                type: string
+
 components:
 
   schemas:
@@ -446,6 +526,63 @@ components:
         #   description: Flag whether the job is successful for simpler statuses
         #   type: boolean
 
+    FileTransferRequest:
+      description: File transfer request schema
+      type: object
+      required:
+        - src
+        - dst
+        - infrastructure
+      properties:
+        src:
+          description: URI of a source file to download. Support http, https, ftp and s3 as a protocol
+          type: string
+          format: uri
+        dst:
+          description: Path in the file system of the infrastructure to save the src file to 
+          type: string
+        infrastructure:
+          description: Name of the HPC infrastructure
+          type: string
+        secure_storage_mount:
+          description: Mount an S3 secure storage locally (on HPC Interface), on the specified infrastructure or don't mount at all
+          $ref: "#/components/schemas/SecureStorageMount"
+        secure_storage_mount_path:
+          description: Path to a mounting point of an S3 secure storage
+          type: string
+
+    FileTransferStatus:
+      description: File transfer status schema
+      type: object
+      required:
+        - id
+        - progress
+        - status
+        - src
+        - dst
+        - infrastructure
+      properties:
+        id:
+          description: UUID of the file transfer
+          type: string
+          format: uuid
+        progress:
+          description: Progress of file transfer in percents
+          type: integer
+        src:
+          description: URI of a source file to download. Support http, https, ftp and s3 as a protocol
+          type: string
+          format: uri
+        dst:
+          description: Path in the file system of the infrastructure to save the src file to 
+          type: string
+        infrastructure:
+          description: Name of the HPC infrastructure
+          type: string
+        status:
+          description: Status of the file transfer
+          $ref: "#/components/schemas/FileTransferStatusCode"
+
     JobStatusCode:
       type: string
       enum:
@@ -453,12 +590,27 @@ components:
         - running
         - completed
 
+    FileTransferStatusCode:
+      type: string
+      enum:
+        - transferring
+        - completed
+        - failure
+
     NodeStateCode:
       type: string
       enum:
         - idle
         - allocated
         - mixed
+
+    SecureStorageMount:
+      type: string
+      default: none
+      enum:
+        - none
+        - local
+        - infrastructure
 
   # # In case the security mechanisms are needed to be implemented 
   # securitySchemes:
