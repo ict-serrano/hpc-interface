@@ -5,7 +5,7 @@ pipeline {
         NAME = "${env.GIT_BRANCH == "origin/main" ? "hpc-interface" : "hpc-interface-staging"}"
         DEPLOY_UVT = "${env.GIT_BRANCH == "origin/main" ? "true" : "false"}"
         CHART_NAME = "${env.GIT_BRANCH == "origin/main" ? "hpc-interface" : "hpc-interface-staging"}"
-        VERSION = '0.1.0'
+        VERSION = '0.2.0'
         DOMAIN = 'localhost'
         REGISTRY = 'serrano-harbor.rid-intrasoft.eu/serrano/hpc-interface'
         REGISTRY_URL = 'https://serrano-harbor.rid-intrasoft.eu/serrano'
