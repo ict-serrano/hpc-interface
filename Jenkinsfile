@@ -12,6 +12,7 @@ pipeline {
         REGISTRY_CREDENTIAL = 'harbor-jenkins'
         UVT_KUBERNETES_PUBLIC_ADDRESS = 'api.k8s.cloud.ict-serrano.eu'
         INTEGRATION_OPERATOR_TOKEN = credentials('uvt-integration-operator-token')
+        HPC_GATEWAY_PUBLIC_URL = 'https://hpc-interface.services.cloud.ict-serrano.eu'
     }
     agent {
         kubernetes {
@@ -225,23 +226,60 @@ pipeline {
                 }
             }
         }
-        stage('Deploy in UVT Kubernetes') {
+        stage('Deploy and populate default clusters in UVT Kubernetes') {
             when {
                 environment name: 'DEPLOY_UVT', value: 'true'
             }
             steps {
                 container('helm') {
                     withCredentials([\
+                        file(\
+                            credentialsId: 'test_infrastructure_fixture_excess_tmpl', \
+                            variable: 'HPC_GATEWAY_TEST_INFRASTRUCTURE_FIXTURE_TMPL'\
+                        ), \
                         sshUserPrivateKey(\
                             credentialsId: 'ssh-private-key-excess', \
-                            keyFileVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY')]) {
+                            keyFileVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY', \
+                            passphraseVariable: 'HPC_GATEWAY_EXCESS_PRIVATE_KEY_PASSWORD', \
+                            usernameVariable: 'HPC_GATEWAY_EXCESS_USERNAME')]) {
+                        
+                        /* Deployment on UVT */
                         sh "kubectl config set-cluster kubernetes-uvt --certificate-authority=uvt.cer --embed-certs=true --server=https://${UVT_KUBERNETES_PUBLIC_ADDRESS}:6443"
                         sh "kubectl config set-credentials integration-operator --token=${INTEGRATION_OPERATOR_TOKEN}"
                         sh "kubectl config set-context kubernetes-uvt --cluster=kubernetes-uvt --user=integration-operator"
                         sh 'kubectl delete secret hpc-interface-ssh-keys --context="kubernetes-uvt" --namespace="integration" || true'
                         sh 'kubectl create secret generic hpc-interface-ssh-keys --context="kubernetes-uvt" --namespace="integration" --from-file="$HPC_GATEWAY_EXCESS_PRIVATE_KEY" || true'
+                        sh "helm upgrade --debug --cleanup-on-fail --install --force --wait --timeout 600s --kube-context=kubernetes-uvt --namespace integration --set name=${CHART_NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${CHART_NAME} ./helm-uvt"
+                        
+                        /* Population of default clusters */
+                        sh 'envsubst < $HPC_GATEWAY_TEST_INFRASTRUCTURE_FIXTURE_TMPL > fixture.infrastructure.yaml'
+                        sh 'curl -L --output yq https://github.com/mikefarah/yq/releases/download/v4.25.2/yq_linux_amd64 && chmod 700 yq'
+                        sh 'KEY_PATH="/etc/ssh/hpc-interface/ssh-key-HPC_GATEWAY_EXCESS_PRIVATE_KEY" ./yq -i ".[].ssh_key.path = strenv(KEY_PATH)" fixture.infrastructure.yaml'
+                        
+                        script {
+                            echo 'Population of clusters on UVT'
+                            try {
+                                String taskName = ""
+                                String fixture = ""
+                                String url = ""
+                                String responseCode = ""
+
+                                taskName = 'Create default clusters - 201 response code'
+                                fixture = "fixture.infrastructure.yaml"
+                                String infrastructure_data = sh(label: taskName, script: """./yq e '.[1]' -I=0 -o=json $fixture""", returnStdout: true)
+                                url = "${HPC_GATEWAY_PUBLIC_URL}/infrastructure"
+                                responseCode = sh(label: taskName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw \'$infrastructure_data\' -o /dev/null""", returnStdout: true)
+
+                                if (responseCode != '201') {
+                                    error("$taskName: Returned status code = $responseCode when calling $url")
+                                }
+
+                            } catch (ignored) {
+                                currentBuild.result = 'FAILURE'
+                                echo "Clusters population failed"
+                            }
+                        }
                     }
-                    sh "helm upgrade --debug --cleanup-on-fail --install --force --wait --timeout 600s --kube-context=kubernetes-uvt --namespace integration --set name=${CHART_NAME} --set image.tag=${VERSION} --set domain=${DOMAIN} ${CHART_NAME} ./helm-uvt"
                 }
             }
         }
