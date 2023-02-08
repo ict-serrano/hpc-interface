@@ -582,6 +582,10 @@ components:
         status:
           description: Status of the file transfer
           $ref: "#/components/schemas/FileTransferStatusCode"
+        reason:
+          description: Additional information, when something went wrong
+          type: string
+          default: ""
 
     JobStatusCode:
       type: string
