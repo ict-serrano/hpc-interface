@@ -1,6 +1,5 @@
 import pytest
 import hpc.api.utils.downloader as downloader
-import urllib.request
 from unittest.mock import MagicMock
 from urllib.error import HTTPError
 from tempfile import TemporaryDirectory
