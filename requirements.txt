@@ -1,4 +1,4 @@
-connexion[swagger-ui]
+connexion[aiohttp,swagger-ui]==2.14.2
 six
 pytest
 pytest-mock

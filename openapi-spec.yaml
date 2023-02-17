@@ -127,7 +127,7 @@ paths:
       # security:
       #   - apiKey: [ ]
       #   - oauth2: [ email ]
-      operationId: create_new_infrastructure
+      operationId: async_create_new_infrastructure
       requestBody:
         required: true
         content:
@@ -166,7 +166,7 @@ paths:
       # security:
       #   - apiKey: [ ]
       #   - oauth2: [ email ]
-      operationId: get_infrastructure
+      operationId: async_get_infrastructure
       parameters:
         - name: infrastructure_name
           in: path
@@ -245,7 +245,7 @@ paths:
       # security:
       #   - apiKey: [ ]
       #   - oauth2: [ email ]
-      operationId: transfer_remote_file
+      operationId: async_transfer_remote_file
       requestBody:
         required: true
         content:
@@ -284,7 +284,7 @@ paths:
       # security:
       #   - apiKey: [ ]
       #   - oauth2: [ email ]
-      operationId: get_file_transfer_status
+      operationId: async_get_file_transfer_status
       parameters:
         - name: file_transfer_id
           in: path
@@ -566,9 +566,9 @@ components:
           description: UUID of the file transfer
           type: string
           format: uuid
-        progress:
-          description: Progress of file transfer in percents
-          type: integer
+        # progress:
+        #   description: Progress of file transfer in percents
+        #   type: integer
         src:
           description: URI of a source file to download. Support http, https, ftp and s3 as a protocol
           type: string

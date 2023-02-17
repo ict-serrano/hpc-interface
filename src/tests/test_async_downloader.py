@@ -8,7 +8,7 @@ from aiohttp.client_exceptions \
 import aiofiles
 import aiofiles.tempfile
 
-import hpc.api.utils.async_downloader as adownloader
+import hpc.api.utils.async_downloader as downloader
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def various_uris_to_test():
 
 def test_filename_retrieval_from_uri_path(various_uris_to_test):
     for uri in various_uris_to_test:
-        assert adownloader.get_filename_from_uri(uri[0]) == uri[1]
+        assert downloader.get_filename_from_uri(uri[0]) == uri[1]
 
 
 @patch("aiohttp.ClientSession")
@@ -40,7 +40,7 @@ async def test_http_file_does_not_exist(session_mock):
     session_mock.return_value.__aenter__.return_value = get_mock
     uri = "http://abc.def.com/some_file.txt"
     with pytest.raises(ClientResponseError):
-        await adownloader.save_uri(uri, "local_dst")
+        await downloader.save_uri(uri, "local_dst")
 
 
 @patch("aiohttp.ClientSession")
@@ -51,21 +51,21 @@ async def test_http_any_client_error(session_mock):
     session_mock.return_value.__aenter__.return_value = get_mock
     uri = "http://abc.def.com/some_file.txt"
     with pytest.raises(ClientError):
-        await adownloader.save_uri(uri, "local_dst")
+        await downloader.save_uri(uri, "local_dst")
 
 
 @pytest.mark.asyncio
 async def test_empty_arguments():
     with pytest.raises(AttributeError):
-        await adownloader.save_uri("uri", "")
+        await downloader.save_uri("uri", "")
     with pytest.raises(AttributeError):
-        await adownloader.save_uri("", "local_dst")
+        await downloader.save_uri("", "local_dst")
 
 
 @pytest.mark.asyncio
 async def test_invalid_uri():
     with pytest.raises(InvalidURL):
-        await adownloader.save_uri("invalid uri", "local_dst")
+        await downloader.save_uri("invalid uri", "local_dst")
 
 
 async def get_iter_bytes(*args, **kwargs):
@@ -85,6 +85,6 @@ async def test_saving_http_response_into_local_file(session_mock):
     async with aiofiles.tempfile.TemporaryDirectory() as download_dir:
         uri = "http://abc.def.com/some_file.txt"
         local_dst = Path(download_dir) / "some_file.txt"
-        await adownloader.save_uri(uri, local_dst)
+        await downloader.save_uri(uri, local_dst)
         async with aiofiles.open(local_dst, "rb") as file:
             assert response_text == await file.read()

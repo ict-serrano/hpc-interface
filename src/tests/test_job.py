@@ -5,7 +5,6 @@ import hpc.api.services.job as job
 from hpc.api.openapi.models.job_request import JobRequest
 from hpc.api.openapi.models.service_name import ServiceName
 from hpc.api.openapi.models.job_status_code import JobStatusCode
-from hpc.api.openapi.models.hpc_scheduler_type import HPCSchedulerType
 import hpc.api.utils.persistence as persistence
 
 def mock_ssh_command_new_scheduler_id_pbs(*args, **kwargs):

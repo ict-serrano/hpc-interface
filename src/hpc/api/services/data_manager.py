@@ -33,12 +33,10 @@ def transfer(ft_request: FileTransferRequest) -> FileTransferStatus:
         ssh.sftp_upload(host, username, pkey, local_src, remote_dst)
 
     ft_id = str(uuid4())
-    progress = 100
     status = FileTransferStatusCode.COMPLETED
 
     ft_status = FileTransferStatus(
         id=ft_id,
-        progress=progress,
         status=status,
         infrastructure=ft_request.infrastructure,
         src=ft_request.src,

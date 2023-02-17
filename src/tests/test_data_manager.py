@@ -22,7 +22,6 @@ def test_http_file_transfer_to_sftp(ssh_infrastructures, mocker):
     mocker.patch("hpc.api.utils.ssh.sftp_upload")
     ft_status = data_manager.transfer(ft_request)
     assert UUID(ft_status.id, version=4)
-    assert ft_status.progress == 100
     assert ft_status.infrastructure == ssh_infrastructures[1]["name"]
     assert ft_status.src == ft_request.src
     assert ft_status.dst == ft_request.dst
@@ -35,7 +34,6 @@ def test_http_file_transfer_to_sftp(ssh_infrastructures, mocker):
 def test_file_transfer_retrieval(ssh_infrastructures, mocker):
     ft_status = data_manager.get(pytest.file_transfer_id)
     assert UUID(ft_status.id, version=4)
-    assert ft_status.progress == 100
     assert ft_status.status == FileTransferStatusCode.COMPLETED
     assert ft_status.infrastructure == ssh_infrastructures[1]["name"]
     assert ft_status.src
