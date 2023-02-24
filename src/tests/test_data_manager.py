@@ -12,9 +12,7 @@ def test_http_file_transfer_to_sftp(ssh_infrastructures, mocker):
     ft_request = FileTransferRequest(
         src="http://abc.def.com/some_file.txt",
         dst="/tmp/some_file.txt",
-        infrastructure=ssh_infrastructures[1]["name"],
-        secure_storage_mount=SecureStorageMount.NONE,
-        secure_storage_mount_path="",
+        infrastructure=ssh_infrastructures[1]["name"]
     )
     mocker.patch("hpc.api.utils.downloader.get_filename_from_uri")
     mocker.patch("hpc.api.utils.downloader.save_response_locally")

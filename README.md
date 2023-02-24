@@ -45,13 +45,7 @@ The examples of usage can be found in the Swagger UI `/ui` path.
 
 ## Data management
 
-One can upload remote data into the target cluster via `/data` API call of the HPC interface. The list of supported protocols is the following:
-
-- http, https
-- ftp
-- s3
-
-The format for the source file is `protocol://domain/path-to-file`. Omitting `protocol` will raise an exception.
+One can upload remote data into the target cluster via `/data` and `/s3_data` API call of the HPC interface.
 
 ### Performance and storage considerations
 

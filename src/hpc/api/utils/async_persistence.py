@@ -14,6 +14,9 @@ def get_job_directory(id: str) -> str:
 def get_file_transfer_directory(id: str) -> str:
     return f"/serrano/orchestrator/file_transfers/file_transfer/hpc/{id}"
 
+def get_s3_transfer_directory(id: str) -> str:
+    return f"/serrano/orchestrator/s3_transfers/s3_transfer/hpc/{id}"
+
 async def save(directory: str, data: Any) -> None:
     _storage[directory] = data
 

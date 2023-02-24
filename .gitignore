@@ -9,3 +9,4 @@ src/hpc/api/openapi/
 **/.pytest_cache/
 
 src/tests/fixture.infrastructure.yaml
+tests/

@@ -10,8 +10,9 @@ import hpc.api.services.async_infrastructure as ainfrastructure
 import hpc.api.services.telemetry as telemetry
 from hpc.api.log import get_logger
 from hpc.api.openapi.models.file_transfer_request import FileTransferRequest
+from hpc.api.openapi.models.s3_file_transfer_request import S3FileTransferRequest
 import hpc.api.services.data_manager as data_manager
-import hpc.api.services.async_data_manager as adata_manager
+from hpc.api.services.async_data_manager import DataManagerFactory
 
 logger = get_logger(__name__)
 
@@ -156,7 +157,8 @@ async def async_transfer_remote_file(request: Request):
         return {"Incorrect input, expected JSON"}, 400
 
     try:
-        res = await adata_manager.transfer(ft_request)
+        dm = DataManagerFactory.get_data_manager(DataManagerFactory.HTTP)
+        res = await dm.transfer(ft_request)
         return res.to_dict(), 201
     except Exception as ex:
         logger.exception("An error occurred during transferring a file")
@@ -166,11 +168,44 @@ async def async_transfer_remote_file(request: Request):
 async def async_get_file_transfer_status(file_transfer_id):
     logger.debug("Retrieving file transfer: {}".format(file_transfer_id))
     try:
-        res = await adata_manager.get(file_transfer_id)
+        dm = DataManagerFactory.get_data_manager(DataManagerFactory.HTTP)
+        res = await dm.get(file_transfer_id)
         return res.to_dict(), 200
     except KeyError as ex:
         logger.exception("File transfer not found: {}".format(file_transfer_id))
         return {"message": str(ex)}, 404
     except Exception as ex:
         logger.exception("An error occurred during retrieval of the file transfer")
+        return {"message": str(ex)}, 500
+
+
+async def async_transfer_remote_s3_file(request: Request):
+    logger.debug("Transferring an S3 file")
+
+    if request.content_type == "application/json":
+        ft_request = S3FileTransferRequest.from_dict(await request.json())
+        logger.debug(ft_request)
+    else:
+        return {"Incorrect input, expected JSON"}, 400
+
+    try:
+        dm = DataManagerFactory.get_data_manager(DataManagerFactory.S3)
+        res = await dm.transfer(ft_request)
+        return res.to_dict(), 201
+    except Exception as ex:
+        logger.exception("An error occurred during transferring an S3 file")
+        return {"message": str(ex)}, 500
+
+
+async def async_get_s3_file_transfer_status(file_transfer_id):
+    logger.debug("Retrieving S3 file transfer: {}".format(file_transfer_id))
+    try:
+        dm = DataManagerFactory.get_data_manager(DataManagerFactory.S3)
+        res = await dm.get(file_transfer_id)
+        return res.to_dict(), 200
+    except KeyError as ex:
+        logger.exception("S3 file transfer not found: {}".format(file_transfer_id))
+        return {"message": str(ex)}, 404
+    except Exception as ex:
+        logger.exception("An error occurred during retrieval of the S3 file transfer")
         return {"message": str(ex)}, 500
