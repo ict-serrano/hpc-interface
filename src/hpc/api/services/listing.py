@@ -3,7 +3,7 @@ from hpc.api.openapi.models.service_name import ServiceName
 from hpc.api.openapi.models.service_type import ServiceType
 
 class Listing():
-    def get_all_services(self):
+    async def get_all_services(self):
         return [
             HPCService(
                 id="75f54ad7-caad-4c70-9227-f0395f30dc5d",
@@ -31,12 +31,12 @@ class Listing():
             ),
         ]
 
-    def get_all_service_types(self):
+    async def get_all_service_types(self):
         return [
             ServiceType.FILTER,
         ]
 
-    def get_all_service_names(self):
+    async def get_all_service_names(self):
         return [
             ServiceName.KALMAN_FILTER,
             ServiceName.MIN_MAX_FILTER,

@@ -1,16 +1,27 @@
-__storage = {}
+from typing import Any
 
-def get_cluster_directory(name):
-    return "/serrano/orchestrator/clusters/cluster/hpc/{}".format(name)
+_storage = {}
 
-def get_job_directory(id):
-    return "/serrano/orchestrator/jobs/job/hpc/{}".format(id)
 
-def get_file_transfer_directory(id):
-    return "/serrano/orchestrator/file_transfers/file_transfer/hpc/{}".format(id)
+def get_cluster_directory(name: str) -> str:
+    return f"/serrano/orchestrator/clusters/cluster/hpc/{name}"
 
-def save(directory, data):
-    __storage[directory] = data
 
-def get(directory):
-    return __storage[directory]
+def get_job_directory(id: str) -> str:
+    return f"/serrano/orchestrator/jobs/job/hpc/{id}"
+
+
+def get_file_transfer_directory(id: str) -> str:
+    return f"/serrano/orchestrator/file_transfers/file_transfer/hpc/{id}"
+
+
+def get_s3_transfer_directory(id: str) -> str:
+    return f"/serrano/orchestrator/s3_transfers/s3_transfer/hpc/{id}"
+
+
+async def save(directory: str, data: Any) -> None:
+    _storage[directory] = data
+
+
+async def get(directory: str) -> Any:
+    return _storage[directory]

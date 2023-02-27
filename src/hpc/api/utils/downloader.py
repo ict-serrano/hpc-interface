@@ -1,23 +1,22 @@
 import os
-import urllib.request
 from urllib.parse import urlparse, unquote
+from pathlib import Path
+
+import aiohttp
+import aiofiles
 
 
-def get_response(src):
-    return urllib.request.urlopen(src)
-
-
-def get_filename_from_uri(uri):
+def get_filename_from_uri(uri: str) -> str:
     path = urlparse(uri).path
     return os.path.basename(unquote(path))
 
 
-def save_response_locally(response, local_dst):
-    # handle large files
-    with local_dst.open("wb") as f:
-        block_size = 8192
-        while True:
-            buffer = response.read(block_size)
-            if not buffer:
-                break
-            f.write(buffer)
+async def save_uri(uri: str, local_dst: Path) -> None:
+    if not (uri and local_dst):
+        raise AttributeError
+    async with aiohttp.ClientSession() as session:
+        async with session.get(uri) as response:
+            async with aiofiles.open(local_dst, "wb") as file:
+                chunk_size = 8192
+                async for chunk in response.content.iter_chunked(chunk_size):
+                    await file.write(chunk)

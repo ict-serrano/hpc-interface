@@ -241,7 +241,7 @@ paths:
   # data transfers
   /data:
     post:
-      summary: "Transfer a remote file to the target infrastructure (currently blocking)"
+      summary: "Transfer a remote HTTP file to the target infrastructure"
       # security:
       #   - apiKey: [ ]
       #   - oauth2: [ email ]
@@ -313,6 +313,85 @@ paths:
                 type: string
         500:
           description: There was an error during file transfer retrieval
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /s3_data:
+    post:
+      summary: "Transfer an S3 object to the target infrastructure"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: transfer_remote_s3_file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/S3FileTransferRequest"
+      responses:
+        201:
+          description: File transferred successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/S3FileTransferStatus"
+        400:
+          description: Invalid data request
+          content:
+            application/json:
+              schema:
+                type: string
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
+        500:
+          description: There was an error during S3 file transfer
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /s3_data/{file_transfer_id}:
+    get:
+      summary: "Get S3 file transfer status"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: get_s3_file_transfer_status
+      parameters:
+        - name: file_transfer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: S3 file transfer status returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/S3FileTransferStatus'
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
+        404:
+          description: S3 file transfer not found
+          content:
+            application/json:
+              schema:
+                type: string
+        500:
+          description: There was an error during s3 file transfer retrieval
           content:
             application/json:
               schema:
@@ -493,6 +572,11 @@ components:
         params:
           description: arbitrary parameters passed for a job
           type: object
+        watch_period:
+          description: How often to invoke the checking of job status
+          type: number
+          format: float
+          default: 10.0
 
     JobStatus:
       description: Job status schema
@@ -544,19 +628,12 @@ components:
         infrastructure:
           description: Name of the HPC infrastructure
           type: string
-        secure_storage_mount:
-          description: Mount an S3 secure storage locally (on HPC Interface), on the specified infrastructure or don't mount at all
-          $ref: "#/components/schemas/SecureStorageMount"
-        secure_storage_mount_path:
-          description: Path to a mounting point of an S3 secure storage
-          type: string
 
     FileTransferStatus:
       description: File transfer status schema
       type: object
       required:
         - id
-        - progress
         - status
         - src
         - dst
@@ -566,9 +643,6 @@ components:
           description: UUID of the file transfer
           type: string
           format: uuid
-        progress:
-          description: Progress of file transfer in percents
-          type: integer
         src:
           description: URI of a source file to download. Support http, https, ftp and s3 as a protocol
           type: string
@@ -582,6 +656,93 @@ components:
         status:
           description: Status of the file transfer
           $ref: "#/components/schemas/FileTransferStatusCode"
+        reason:
+          description: Additional information, when something went wrong
+          type: string
+          default: ""
+
+    S3FileTransferRequest:
+      description: S3 file transfer request schema
+      type: object
+      required:
+        - endpoint
+        - bucket
+        - object
+        - region
+        - access_key
+        - secret_key
+        - dst
+        - infrastructure
+      properties:
+        endpoint:
+          description: S3 endpoint URL
+          type: string
+        bucket:
+          description: Name of the bucket
+          type: string
+        object:
+          description: Name of the object in the bucket to download 
+          type: string
+        region:
+          description: Name of the storage region
+          type: string
+          default: local
+        access_key:
+          description: Access key
+          type: string
+        secret_key:
+          description: Secret key 
+          type: string
+        dst:
+          description: Path in the file system of the infrastructure to save the S3 object to 
+          type: string
+        infrastructure:
+          description: Name of the HPC infrastructure
+          type: string
+
+    S3FileTransferStatus:
+      description: File transfer status schema
+      type: object
+      required:
+        - id
+        - status
+        - endpoint
+        - bucket
+        - object
+        - region
+        - dst
+        - infrastructure
+      properties:
+        id:
+          description: UUID of the file transfer
+          type: string
+          format: uuid
+        endpoint:
+          description: S3 endpoint URL
+          type: string
+        bucket:
+          description: Name of the bucket
+          type: string
+        object:
+          description: Name of the object in the bucket to download 
+          type: string
+        region:
+          description: Name of the storage region
+          type: string
+          default: local
+        dst:
+          description: Path in the file system of the infrastructure to save the src file to 
+          type: string
+        infrastructure:
+          description: Name of the HPC infrastructure
+          type: string
+        status:
+          description: Status of the file transfer
+          $ref: "#/components/schemas/FileTransferStatusCode"
+        reason:
+          description: Additional information, when something went wrong
+          type: string
+          default: ""
 
     JobStatusCode:
       type: string

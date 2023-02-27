@@ -1,46 +1,50 @@
-import os
+from typing import Tuple
+from pathlib import Path
 
-from paramiko.rsakey import RSAKey
-from paramiko.ed25519key import Ed25519Key
-from paramiko.client import SSHClient
-from paramiko import AutoAddPolicy
-
-
-def get_key_types():
-    return ["ssh-rsa", "ssh-ed25519"]
+import aiofiles.os
+import asyncssh
 
 
-def key_exists(key_path):
-    return os.path.exists(key_path)
+async def key_exists(key_path: str) -> bool:
+    return await aiofiles.os.path.exists(key_path)
 
 
-def get_pkey(key_type, key_path, key_password):
-    if key_type == "ssh-rsa":
-        return RSAKey.from_private_key_file(key_path, key_password)
-    elif key_type == "ssh-ed25519":
-        return Ed25519Key.from_private_key_file(key_path, key_password)
-    else:
-        raise NotImplementedError(
-            "Currently only RSA and Ed25519 key types are supported")
+async def get_pkey(key_path: str, key_password: str) -> asyncssh.SSHKey:
+    if not (key_path and key_password):
+        raise AttributeError
+    return asyncssh.read_private_key(key_path, key_password)
 
 
-def exec_command(host, username, pkey, command):
-    client = SSHClient()
-    # TODO: security concern
-    client.set_missing_host_key_policy(AutoAddPolicy())
-    client.connect(hostname=host, username=username, pkey=pkey)
-    stdin, stdout, stderr = client.exec_command(command)
-    stdout = "".join(stdout.readlines()).rstrip()
-    stderr = "".join(stderr.readlines()).rstrip()
-    client.close()
-    return stdout, stderr
+async def exec_command(
+    host: str,
+    username: str,
+    pkey: asyncssh.SSHKey,
+    command: str
+) -> Tuple[str, str]:
+    async with asyncssh.connect(
+        host,
+        username=username,
+        client_keys=[pkey],
+        known_hosts=None,  # TODO: security concern
+    ) as conn:
+        result = await conn.run(command, check=False)
+        stdout = "".join(result.stdout).rstrip()
+        stderr = "".join(result.stderr).rstrip()
+        return stdout, stderr
 
 
-def sftp_upload(host, username, pkey, local_src, remote_dst):
-    client = SSHClient()
-    # TODO: security concern
-    client.set_missing_host_key_policy(AutoAddPolicy())
-    client.connect(hostname=host, username=username, pkey=pkey)
-    with client.open_sftp() as sftp:
-        sftp.put(local_src, remote_dst)
-    client.close()
+async def sftp_upload(
+    host: str,
+    username: str,
+    pkey: asyncssh.SSHKey,
+    local_src: Path,
+    remote_dst: Path
+) -> None:
+    async with asyncssh.connect(
+        host,
+        username=username,
+        client_keys=[pkey],
+        known_hosts=None,  # TODO: security concern
+    ) as conn:
+        async with conn.start_sftp_client() as sftp:
+            await sftp.put(local_src, remote_dst)
