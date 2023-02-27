@@ -205,7 +205,7 @@ paths:
       # security:
       #   - apiKey: [ ]
       #   - oauth2: [ email ]
-      operationId: get_infrastructure_telemetry
+      operationId: async_get_infrastructure_telemetry
       parameters:
         - name: infrastructure_name
           in: path

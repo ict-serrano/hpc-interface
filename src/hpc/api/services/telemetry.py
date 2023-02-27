@@ -1,7 +1,7 @@
 import json
 
-import hpc.api.utils.persistence as persistence
-import hpc.api.utils.ssh as ssh
+import hpc.api.utils.async_persistence as persistence
+import hpc.api.utils.async_ssh as ssh
 
 from hpc.api.openapi.models.infrastructure_telemetry import InfrastructureTelemetry
 from hpc.api.openapi.models.node_state_code import NodeStateCode
@@ -9,6 +9,7 @@ from hpc.api.openapi.models.partition_telemetry import PartitionTelemetry
 from hpc.api.openapi.models.job_status_code import JobStatusCode
 from hpc.api.openapi.models.infrastructure_summary import InfrastructureSummary
 from hpc.api.utils.scheduler_helper import SchedulerHelperFactory
+
 
 def derive_slurm_telemetry(infrastructure, nodes, jobs):
 
@@ -42,7 +43,8 @@ def derive_slurm_telemetry(infrastructure, nodes, jobs):
             partitions_dict[node.partition]["queued_jobs"] = partitions_dict[node.partition]["queued_jobs"] + 1
 
     for partition in partitions_dict:
-        partitions.append(PartitionTelemetry.from_dict(partitions_dict[partition]))
+        partitions.append(PartitionTelemetry.from_dict(
+            partitions_dict[partition]))
 
     return InfrastructureTelemetry(
         name=infrastructure.name,
@@ -52,24 +54,25 @@ def derive_slurm_telemetry(infrastructure, nodes, jobs):
         partitions=partitions
     )
 
-def get(infrastructure_name: str):
-    infrastructure = json.loads(persistence.get(persistence.get_cluster_directory(infrastructure_name)))
-    key_type = infrastructure["ssh_key"]["type"]
+
+async def get(infrastructure_name: str):
+    infrastructure = json.loads(await persistence.get(
+        persistence.get_cluster_directory(infrastructure_name)))
     key_path = infrastructure["ssh_key"]["path"]
     key_password = infrastructure["ssh_key"]["password"]
-    pkey = ssh.get_pkey(key_type, key_path, key_password)
+    pkey = await ssh.get_pkey(key_path, key_password)
     host = infrastructure["host"]
     username = infrastructure["username"]
     scheduler = infrastructure["scheduler"]
     helper = SchedulerHelperFactory.helper(scheduler)
     command = helper.get_nodes_info_command()
 
-    stdout, stderr = ssh.exec_command(host, username, pkey, command)
+    stdout, stderr = await ssh.exec_command(host, username, pkey, command)
     nodes = helper.get_nodes_info(stdout)
 
     command = helper.get_jobs_info_command()
 
-    stdout, stderr = ssh.exec_command(host, username, pkey, command)
+    stdout, stderr = await ssh.exec_command(host, username, pkey, command)
     jobs = helper.get_jobs_info(stdout)
 
     # TODO: so far, only Slurm is supported

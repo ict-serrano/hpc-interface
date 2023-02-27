@@ -119,6 +119,19 @@ def get_infrastructure_telemetry(infrastructure_name):
         return {"message": str(ex)}, 500
 
 
+async def async_get_infrastructure_telemetry(infrastructure_name):
+    logger.debug("Retrieving infrastructure telemetry: {}".format(infrastructure_name))
+    try:
+        res = await telemetry.get(infrastructure_name)
+        return res.to_dict(), 200
+    except KeyError as ex:
+        logger.exception("Infrastructure not found: {}".format(infrastructure_name))
+        return {"message": str(ex)}, 404
+    except Exception as ex:
+        logger.exception("An error occurred during retrieval of the infrastructure telemetry")
+        return {"message": str(ex)}, 500
+
+
 def transfer_remote_file(body):
     logger.debug("Transferring a file")
     logger.debug(body)
