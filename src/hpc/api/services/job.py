@@ -10,7 +10,10 @@ from hpc.api.openapi.models.job_status import JobStatus
 from hpc.api.openapi.models.job_status_code import JobStatusCode
 
 
-async def submit(job_request: JobRequest, period: float = 10.0) -> JobStatus:
+DEFAULT_WATCH_PERIOD = 10.0
+
+
+async def submit(job_request: JobRequest) -> JobStatus:
     infrastructure = json.loads(await persistence.get(
         persistence.get_cluster_directory(job_request.infrastructure)))
     key_path = infrastructure["ssh_key"]["path"]
@@ -38,13 +41,15 @@ async def submit(job_request: JobRequest, period: float = 10.0) -> JobStatus:
 
     await save_status(job_status)
 
+    period = float(job_request.watch_period) \
+        if job_request.watch_period else DEFAULT_WATCH_PERIOD
     asyncio.create_task(
         watch_job_status(job_status, period), name=job_status.id)
 
     return job_status
 
 
-async def watch_job_status(job_status: JobStatus, period: float = 10.0):
+async def watch_job_status(job_status: JobStatus, period: float):
     prev_status = job_status.status
     infrastructure = json.loads(await persistence.get(
         persistence.get_cluster_directory(job_status.infrastructure)))

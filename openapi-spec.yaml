@@ -572,6 +572,11 @@ components:
         params:
           description: arbitrary parameters passed for a job
           type: object
+        watch_period:
+          description: How often to invoke the checking of job status
+          type: number
+          format: float
+          default: 10.0
 
     JobStatus:
       description: Job status schema

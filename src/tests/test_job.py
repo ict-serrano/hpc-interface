@@ -63,9 +63,10 @@ async def submit_pbs_job(ssh_infrastructures):
             {"name": ServiceName.FFT_FILTER, "version": "0.0.1"}
         ],
         infrastructure=ssh_infrastructures[0]["name"],
-        params={}
+        params={},
+        watch_period=0.1
     )
-    job_status = await job.submit(job_request, 0.1)
+    job_status = await job.submit(job_request)
     return job_request, job_status
 
 
@@ -78,9 +79,10 @@ async def submit_slurm_job(ssh_infrastructures):
             {"name": ServiceName.FFT_FILTER, "version": "0.0.1"}
         ],
         infrastructure=ssh_infrastructures[1]["name"],
-        params={}
+        params={},
+        watch_period=0.1
     )
-    job_status = await job.submit(job_request, 0.1)
+    job_status = await job.submit(job_request)
     return job_request, job_status
 
 
