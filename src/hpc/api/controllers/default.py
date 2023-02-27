@@ -17,9 +17,10 @@ from hpc.api.services.async_data_manager import DataManagerFactory
 logger = get_logger(__name__)
 
 
-def get_all_services():
+async def get_all_services():
     listing = Listing()
-    return listing.get_all_services(), 200
+    services = [s.to_dict() for s in await listing.get_all_services()]
+    return services, 200
 
 
 def submit_new_job(body):
