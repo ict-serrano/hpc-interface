@@ -5,7 +5,7 @@ import hpc.api.services.job as job
 from hpc.api.openapi.models.job_request import JobRequest
 from hpc.api.openapi.models.service_name import ServiceName
 from hpc.api.openapi.models.job_status_code import JobStatusCode
-import hpc.api.utils.async_persistence as persistence
+import hpc.api.utils.persistence as persistence
 
 
 async def mock_ssh_command_new_scheduler_id_pbs(*args, **kwargs):
@@ -25,9 +25,9 @@ async def mock_ssh_command_job_status_slurm(*args, **kwargs):
 
 
 @pytest.mark.asyncio
-async def test_job_submission_pbs(assh_infrastructures, mocker):
-    ssh_infrastructures = await assh_infrastructures
-    mocker.patch('hpc.api.utils.async_ssh.exec_command',
+async def test_job_submission_pbs(ssh_infrastructures, mocker):
+    ssh_infrastructures = await ssh_infrastructures
+    mocker.patch('hpc.api.utils.ssh.exec_command',
                  new=mock_ssh_command_new_scheduler_id_pbs)
     job_request = JobRequest(
         services=[
@@ -50,9 +50,9 @@ async def test_job_submission_pbs(assh_infrastructures, mocker):
 
 
 @pytest.mark.asyncio
-async def test_job_submission_slurm(assh_infrastructures, mocker):
-    ssh_infrastructures = await assh_infrastructures
-    mocker.patch('hpc.api.utils.async_ssh.exec_command',
+async def test_job_submission_slurm(ssh_infrastructures, mocker):
+    ssh_infrastructures = await ssh_infrastructures
+    mocker.patch('hpc.api.utils.ssh.exec_command',
                  new=mock_ssh_command_new_scheduler_id_slurm)
     job_request = JobRequest(
         services=[
@@ -76,9 +76,9 @@ async def test_job_submission_slurm(assh_infrastructures, mocker):
 
 
 @pytest.mark.asyncio
-async def test_job_retrieval_pbs(assh_infrastructures, mocker):
-    ssh_infrastructures = await assh_infrastructures
-    mocker.patch('hpc.api.utils.async_ssh.exec_command',
+async def test_job_retrieval_pbs(ssh_infrastructures, mocker):
+    ssh_infrastructures = await ssh_infrastructures
+    mocker.patch('hpc.api.utils.ssh.exec_command',
                  new=mock_ssh_command_job_status_pbs)
     job_status = await job.get(pytest.pbs_job_id)
     assert len(job_status.scheduler_id) > 0
@@ -90,9 +90,9 @@ async def test_job_retrieval_pbs(assh_infrastructures, mocker):
 
 
 @pytest.mark.asyncio
-async def test_job_retrieval_slurm(assh_infrastructures, mocker):
-    ssh_infrastructures = await assh_infrastructures
-    mocker.patch('hpc.api.utils.async_ssh.exec_command',
+async def test_job_retrieval_slurm(ssh_infrastructures, mocker):
+    ssh_infrastructures = await ssh_infrastructures
+    mocker.patch('hpc.api.utils.ssh.exec_command',
                  new=mock_ssh_command_job_status_slurm)
     job_status = await job.get(pytest.slurm_job_id)
     assert len(job_status.scheduler_id) > 0

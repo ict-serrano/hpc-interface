@@ -1,8 +1,8 @@
 import json
 from uuid import uuid4
 
-import hpc.api.utils.async_ssh as ssh
-import hpc.api.utils.async_persistence as persistence
+import hpc.api.utils.ssh as ssh
+import hpc.api.utils.persistence as persistence
 from hpc.api.utils.scheduler_helper import SchedulerHelperFactory
 from hpc.api.openapi.models.job_request import JobRequest
 from hpc.api.openapi.models.job_status import JobStatus

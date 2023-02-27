@@ -1,7 +1,7 @@
 import json
 
-import hpc.api.utils.async_persistence as persistence
-import hpc.api.utils.async_ssh as ssh
+import hpc.api.utils.persistence as persistence
+import hpc.api.utils.ssh as ssh
 
 from hpc.api.openapi.models.infrastructure_telemetry import InfrastructureTelemetry
 from hpc.api.openapi.models.node_state_code import NodeStateCode

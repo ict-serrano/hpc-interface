@@ -37,8 +37,8 @@ def mock_slurm_jobs_info(*args, **kwargs):
 
 
 @pytest.mark.asyncio
-async def test_slurm_idle_resources(assh_infrastructures):
-    ssh_infrastructures = await assh_infrastructures
+async def test_slurm_idle_resources(ssh_infrastructures):
+    ssh_infrastructures = await ssh_infrastructures
     nodes = [
         SlurmNode(
             "node01", "node01", "profile", "idle", 128, 1, 64, 2, 128
@@ -69,8 +69,8 @@ async def test_slurm_idle_resources(assh_infrastructures):
 
 
 @pytest.mark.asyncio
-async def test_slurm_allocated_resources(assh_infrastructures):
-    ssh_infrastructures = await assh_infrastructures
+async def test_slurm_allocated_resources(ssh_infrastructures):
+    ssh_infrastructures = await ssh_infrastructures
     nodes = mock_slurm_nodes_info()
     jobs = mock_slurm_jobs_info()
 
@@ -92,9 +92,9 @@ async def test_slurm_allocated_resources(assh_infrastructures):
 
 
 @pytest.mark.asyncio
-async def test_get_slurm_telemetry(assh_infrastructures, mocker):
-    ssh_infrastructures = await assh_infrastructures
-    mocker.patch('hpc.api.utils.async_ssh.exec_command', new=mock_ssh_command)
+async def test_get_slurm_telemetry(ssh_infrastructures, mocker):
+    ssh_infrastructures = await ssh_infrastructures
+    mocker.patch('hpc.api.utils.ssh.exec_command', new=mock_ssh_command)
     mocker.patch('hpc.api.utils.resource_parser.get_slurm_nodes_info',
                  new=mock_slurm_nodes_info)
     mocker.patch('hpc.api.utils.resource_parser.get_slurm_jobs_info',
