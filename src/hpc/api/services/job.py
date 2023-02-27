@@ -1,4 +1,5 @@
 import json
+import asyncio
 from uuid import uuid4
 
 import hpc.api.utils.ssh as ssh
@@ -9,7 +10,7 @@ from hpc.api.openapi.models.job_status import JobStatus
 from hpc.api.openapi.models.job_status_code import JobStatusCode
 
 
-async def submit(job_request: JobRequest) -> JobStatus:
+async def submit(job_request: JobRequest, period: float = 10.0) -> JobStatus:
     infrastructure = json.loads(await persistence.get(
         persistence.get_cluster_directory(job_request.infrastructure)))
     key_path = infrastructure["ssh_key"]["path"]
@@ -35,17 +36,16 @@ async def submit(job_request: JobRequest) -> JobStatus:
         status=JobStatusCode.QUEUED
     )
 
-    await persistence.save(
-        persistence.get_job_directory(job_id),
-        json.dumps(job_status.to_dict())
-    )
+    await save_status(job_status)
+
+    asyncio.create_task(
+        watch_job_status(job_status, period), name=job_status.id)
 
     return job_status
 
 
-async def get(job_id: str) -> JobStatus:
-    job_status = JobStatus.from_dict(
-        json.loads(await persistence.get(persistence.get_job_directory(job_id))))
+async def watch_job_status(job_status: JobStatus, period: float = 10.0):
+    prev_status = job_status.status
     infrastructure = json.loads(await persistence.get(
         persistence.get_cluster_directory(job_status.infrastructure)))
     key_path = infrastructure["ssh_key"]["path"]
@@ -58,13 +58,26 @@ async def get(job_id: str) -> JobStatus:
     command = helper.get_job_status_code_command(job_status.scheduler_id)
 
     stdout, stderr = await ssh.exec_command(host, username, pkey, command)
-    job_status_code = helper.get_job_status_code(stdout)
+    new_status = helper.get_job_status_code(stdout)
 
-    job_status.status = job_status_code
+    if prev_status != new_status:
+        job_status.status = new_status
+        await save_status(job_status)
 
+    if new_status != JobStatusCode.COMPLETED:
+        await asyncio.sleep(period)
+        asyncio.create_task(
+            watch_job_status(job_status, period), name=job_status.id)
+
+
+async def save_status(job_status: JobStatus) -> None:
     await persistence.save(
-        persistence.get_job_directory(job_id),
+        persistence.get_job_directory(job_status.id),
         json.dumps(job_status.to_dict())
     )
 
-    return job_status
+
+async def get(job_id: str) -> JobStatus:
+    return JobStatus.from_dict(
+        json.loads(
+            await persistence.get(persistence.get_job_directory(job_id))))
