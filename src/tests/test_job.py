@@ -8,6 +8,7 @@ from hpc.api.openapi.models.job_request import JobRequest
 from hpc.api.openapi.models.service_name import ServiceName
 from hpc.api.openapi.models.job_status_code import JobStatusCode
 import hpc.api.utils.persistence as persistence
+from hpc.api.openapi.models.job_request_params import *
 
 
 async def mock_ssh_command_new_scheduler_id_pbs(*args, **kwargs):
@@ -58,12 +59,14 @@ def ssh_slurm_calls_responses(n):
 async def submit_pbs_job(ssh_infrastructures):
     ssh_infrastructures = await ssh_infrastructures
     job_request = JobRequest(
-        services=[
-            {"name": ServiceName.KALMAN_FILTER, "version": "0.0.1"},
-            {"name": ServiceName.FFT_FILTER, "version": "0.0.1"}
-        ],
+        services=[ServiceName.KALMAN, ServiceName.FFT],
         infrastructure=ssh_infrastructures[0]["name"],
-        params={},
+        params=JobRequestParams(
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        ),
         watch_period=0.1
     )
     job_status = await job.submit(job_request)
@@ -74,12 +77,14 @@ async def submit_pbs_job(ssh_infrastructures):
 async def submit_slurm_job(ssh_infrastructures):
     ssh_infrastructures = await ssh_infrastructures
     job_request = JobRequest(
-        services=[
-            {"name": ServiceName.KALMAN_FILTER, "version": "0.0.1"},
-            {"name": ServiceName.FFT_FILTER, "version": "0.0.1"}
-        ],
+        services=[ServiceName.KALMAN, ServiceName.FFT],
         infrastructure=ssh_infrastructures[1]["name"],
-        params={},
+        params=JobRequestParams(
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        ),
         watch_period=0.1
     )
     job_status = await job.submit(job_request)

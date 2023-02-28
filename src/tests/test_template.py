@@ -1,36 +1,212 @@
 import pytest
 import hpc.api.utils.template as template
 
-@pytest.fixture
-def hpc_service_params():
-    return {
-        "icase": 6,
-        "id": 1,
-        "Kalman_Filter": 1,
-        "FFT_Filter": 1,
-        "MinMaxTransform": 1,
-        "R": 11,
-        "R_range_offset": 0,
-        "R_range_endset": 100,
-        "workspace": "/home/javad/Desktop/SERRANO/serrano/serrano/serrano/data",
-        "readInputData": "/Input_Data/IDEKO.csv",
-        "binaryDataSignalPath": "/Input_Data/binaryInputData",
-        "kalmanDataPath": "/Output_Data/KalmanFilter",
-        "fftDataPath": "/Output_Data/FFTFilter",
-        "minMaxDataPath": "/Output_Data/MinMaxUpdate",
-        "binaryDataKNN": "/Input_Data/KNNbin",
-        "binaryDataDTWx": "/Input_Data/DTWx",
-        "binaryDataDTWy": "/Input_Data/DTWy",
-        "binaryBSholes": "/Input_Data/DTWx",
-        "num_MPI_Procs": 4,
-        "numCommunicatoi": 4,
-        "num_Thread": 1,
-        "num_numa": 1,
-        "num_core_numa": 4,
-        "exe": "build/Seranno",
-    }
+from hpc.api.openapi.models.job_request import JobRequest
+from hpc.api.openapi.models.service_name import ServiceName
+from hpc.api.openapi.models.job_request_params import *
 
-def test_hpc_service_params_included(hpc_service_params):
-    rendered_template = template.render(hpc_service_params)
-    for param in hpc_service_params:
-        assert param in rendered_template
+
+def test_params_filters_generated_correctly_from_request():
+    request = JobRequest(
+        services=[ServiceName.KALMAN, ServiceName.FFT],
+        infrastructure="some_infra",
+        params=JobRequestParams(
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        )
+    )
+    params = template.generate_params(request)
+    assert params.icase == 1
+    assert params.filter.kalman == 1
+    assert params.filter.fft == 1
+    assert params.filter.min_max == 0
+    assert params.filter.savitzky_golay == 0
+    assert params.kalman.r == 200
+
+
+def test_params_kmean_generated_correctly_from_request():
+    request = JobRequest(
+        services=[ServiceName.KMEAN],
+        infrastructure="some_infra",
+        params=JobRequestParams(
+            kmean=JobRequestParamsKmean(
+                epsilon_criteria=0.1,
+            ),
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        )
+    )
+    params = template.generate_params(request)
+    assert params.icase == 2
+    assert params.filter.kalman == 0
+    assert params.filter.fft == 0
+    assert params.filter.min_max == 0
+    assert params.filter.savitzky_golay == 0
+    assert params.kmean.cluster_number == 2
+    assert params.kmean.epsilon_criteria == 0.1
+
+
+def test_params_knn_generated_correctly_from_request():
+    request = JobRequest(
+        services=[ServiceName.KNN],
+        infrastructure="some_infra",
+        params=JobRequestParams(
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        )
+    )
+    params = template.generate_params(request)
+    assert params.icase == 3
+    assert params.filter.kalman == 0
+    assert params.filter.fft == 0
+    assert params.filter.min_max == 0
+    assert params.filter.savitzky_golay == 0
+    assert params.knn.cluster_number == 2
+    assert params.knn.k_nearest_neighbor == 7
+
+
+def test_params_mixed_filters_failure():
+    with pytest.raises(ValueError):
+        template.generate_params(
+            JobRequest(
+                services=[ServiceName.KALMAN, ServiceName.KMEAN],
+                infrastructure="some_infra",
+                params=JobRequestParams(
+                    read_input_data="abc",
+                    input_data_double="abc",
+                    input_data_float="abc",
+                    inference_knn_path="abc",
+                )
+            ))
+    with pytest.raises(ValueError):
+        template.generate_params(
+            JobRequest(
+                services=[ServiceName.KALMAN, ServiceName.KNN],
+                infrastructure="some_infra",
+                params=JobRequestParams(
+                    read_input_data="abc",
+                    input_data_double="abc",
+                    input_data_float="abc",
+                    inference_knn_path="abc",
+                )
+            ))
+    with pytest.raises(ValueError):
+        template.generate_params(
+            JobRequest(
+                services=[ServiceName.KMEAN, ServiceName.KNN],
+                infrastructure="some_infra",
+                params=JobRequestParams(
+                    read_input_data="abc",
+                    input_data_double="abc",
+                    input_data_float="abc",
+                    inference_knn_path="abc",
+                )
+            ))
+
+
+def test_default_execution_params():
+    request = JobRequest(
+        services=[ServiceName.KNN],
+        infrastructure="some_infra",
+        params=JobRequestParams(
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        )
+    )
+    params = template.generate_params(request)
+    assert params.benchmark_state == 0
+    assert params.num_mpi_procs == 4
+    assert params.num_thread == 1
+    assert params.perforation_stride == 1
+    assert params.precision_scenario == 1
+    assert params.num_numa == 8
+    assert params.num_core_numa == 16
+    assert params.root_dir == "${HOME}/serrano"
+    assert params.workspace == "/data"
+    assert params.profiling_workspace == "/profile"
+    assert params.exe == "build/SERRANO"
+
+    request = JobRequest(
+        services=[ServiceName.KNN],
+        infrastructure="some_infra",
+        params=JobRequestParams(
+            benchmark_state=1,
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        )
+    )
+    params = template.generate_params(request)
+    assert params.benchmark_state == 1
+
+
+def test_data_path_params():
+    with pytest.raises(ValueError):
+        template.generate_params(
+            JobRequest(
+                services=[ServiceName.KMEAN],
+                infrastructure="some_infra",
+                params=JobRequestParams(
+                    input_data_double="abc",
+                    input_data_float="abc",
+                    inference_knn_path="abc",
+                )
+            ))
+    with pytest.raises(ValueError):
+        template.generate_params(
+            JobRequest(
+                services=[ServiceName.KNN],
+                infrastructure="some_infra",
+                params=JobRequestParams(
+                    read_input_data="abc",
+                    input_data_float="abc",
+                    inference_knn_path="abc",
+                )
+            ))
+    with pytest.raises(ValueError):
+        template.generate_params(
+            JobRequest(
+                services=[ServiceName.KNN],
+                infrastructure="some_infra",
+                params=JobRequestParams(
+                    read_input_data="abc",
+                    input_data_double="abc",
+                    inference_knn_path="abc",
+                )
+            ))
+    with pytest.raises(ValueError):
+        template.generate_params(
+            JobRequest(
+                services=[ServiceName.KNN],
+                infrastructure="some_infra",
+                params=JobRequestParams(
+                    read_input_data="abc",
+                    input_data_double="abc",
+                    input_data_float="abc",
+                )
+            ))
+
+
+def test_hpc_service_params_included():
+    request = JobRequest(
+        services=[ServiceName.KNN],
+        infrastructure="some_infra",
+        params=JobRequestParams(
+            benchmark_state=1,
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        )
+    )
+    rendered_template = template.render(request)
+    assert "BenchmarkState=1" in rendered_template

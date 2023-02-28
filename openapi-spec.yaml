@@ -405,37 +405,21 @@ components:
       description: Description of the HPC service
       type: object
       required:
-        - id
         - name
-        - version
-        - type
       properties:
-        id:
-          description: UUID of the service
-          type: string
-          format: uuid
         name:
           description: Name of the service
           $ref: "#/components/schemas/ServiceName"
-        version:
-          description: Version of the service
-          type: string
-        type:
-          description: Type of the service
-          $ref: "#/components/schemas/ServiceType"
 
     ServiceName:
       type: string
       enum:
-        - kalman_filter
-        - min_max_filter
-        - fft_filter
-        - test_filter
-
-    ServiceType:
-      type: string
-      enum:
-        - filter
+        - kalman
+        - fft
+        - min_max
+        - savitzky_golay
+        - kmean
+        - knn
 
     Infrastructure:
       description: Infrastructure schema
@@ -560,18 +544,13 @@ components:
           description: list of services to use for a job
           type: array
           items:
-            type: object
-            properties:
-              name:
-                $ref: "#/components/schemas/ServiceName"
-              version:
-                type: string
+            $ref: "#/components/schemas/ServiceName"
         infrastructure:
           description: Name of the HPC infrastructure
           type: string
         params:
           description: arbitrary parameters passed for a job
-          type: object
+          $ref: "#/components/schemas/JobRequestParams"
         watch_period:
           description: How often to invoke the checking of job status
           type: number
@@ -609,6 +588,138 @@ components:
         # success:
         #   description: Flag whether the job is successful for simpler statuses
         #   type: boolean
+    
+    JobRequestParams:
+      description: Job request parameters
+      type: object
+      required:
+        - read_input_data
+        - input_data_double
+        - input_data_float
+        - inference_knn_path
+      properties:
+        icase:
+          description: Selection of kernel
+          type: integer
+          default: -1
+        filter:
+          description: Specific to signal processing
+          type: object
+          properties:
+            kalman:
+              description: Enable kalman filter
+              type: integer
+              default: 0
+            fft:
+              description: Enable fft filter
+              type: integer
+              default: 0
+            min_max:
+              description: Enable min_max filter
+              type: integer
+              default: 0
+            savitzky_golay:
+              description: Enable savitzky_golay filter
+              type: integer
+              default: 0
+        kalman:
+          description: kalman filter config
+          type: object
+          properties:
+            r:
+              description: R parameter
+              type: integer
+              default: 200
+        fft:
+          description: fft filter config
+          type: object
+        min_max:
+          description: min_max filter config
+          type: object
+        savitzky_golay:
+          description: savitzky_golay filter config
+          type: object
+        kmean:
+          description: kmean config
+          type: object
+          properties:
+            cluster_number:
+              description: Number of clusters 
+              type: integer
+              default: 2
+            epsilon_criteria:
+              description: Epsilon criteria
+              type: number
+              format: float
+              default: 0.00001
+        knn:
+          description: acb
+          type: object
+          properties:
+            cluster_number:
+              description: Number of clusters 
+              type: integer
+              default: 2
+            k_nearest_neighbor:
+              description: k nearest neighbors
+              type: integer
+              default: 7
+        benchmark_state:
+          description: Benchmark state
+          type: integer
+          default: 0
+        num_mpi_procs:
+          description: Number of MPI processes
+          type: integer
+          default: 4
+        num_thread:
+          description: Number of threads
+          type: integer
+          default: 1
+        perforation_stride:
+          description: Perforation stride
+          type: integer
+          default: 1
+        precision_scenario:
+          description: Transprecision scenario
+          type: integer
+          default: 1
+        num_numa:
+          description: NUMA number
+          type: integer
+          default: 8
+        num_core_numa:
+          description: NUMA core number
+          type: integer
+          default: 16
+        root_dir:
+          description: Working directory
+          type: string
+          default: "${HOME}/serrano"
+        workspace:
+          description: Data workspace
+          type: string
+          default: "/data"
+        profiling_workspace:
+          description: Profiling workspace
+          type: string
+          default: "/profile"
+        read_input_data:
+          description: Initial input data
+          type: string
+        input_data_double:
+          description: Binary input data double precision
+          type: string
+        input_data_float:
+          description: Binary input data float precision
+          type: string
+        inference_knn_path:
+          description: Path to KNN inference
+          type: string
+        exe:
+          description: Path to exe binary  
+          type: string
+          default: "build/SERRANO"
 
     FileTransferRequest:
       description: File transfer request schema
@@ -764,14 +875,6 @@ components:
         - idle
         - allocated
         - mixed
-
-    SecureStorageMount:
-      type: string
-      default: none
-      enum:
-        - none
-        - local
-        - infrastructure
 
   # # In case the security mechanisms are needed to be implemented 
   # securitySchemes:

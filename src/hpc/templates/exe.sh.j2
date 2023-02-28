@@ -1,54 +1,196 @@
 #!/bin/bash
+#SBATCH -N 1 # Ensure that all cores are on one machine
+#SBATCH -t 0-01:00 # Runtime in D-HH:MM
+#SBATCH --cpus-per-task=1 # Request that ncpus be allocated per process
+#SBATCH --ntasks-per-node=128 # Max number of processes
 
-# Choosing the kernel
+{# Template parameters - schema for the template is in openapi spec
+
+params = {
+    # kernel
+    icase: -1..3
+
+    # signal processing - if icase == 1
+    filter:
+        kalman: 0..1 
+        fft: 0..1
+        min_max: 0..1
+        savitzky_golay: 0..1
+
+    # kalman filter config
+    kalman:
+        r: 200
+    
+    # fft filter config
+    fft: {}
+
+    # min max filter config 
+    min_max: {}
+
+    # savitzky golay filter config
+    savitzky_golay: {}
+
+    # kmean config
+    kmean:
+        cluster_number: 2
+        epsilon_criteria: 0.00001
+    
+    # knn config
+    knn:
+        cluster_number: 2
+        k_nearest_neighbor: 7
+    
+    # benchmark state
+    benchmark_state: 0
+
+    # parallelization parameters
+    num_mpi_procs: 4
+    num_thread: 1
+
+    # approximation computing techniques
+    perforation_stride: 1
+
+    # transprecision techniques
+    precision_scenario: 1
+
+    # hardware config
+    num_numa: 8
+    num_core_numa: 16
+
+    # workspace
+    root_dir: "${HOME}/serrano"
+    workspace: "/data"
+    profiling_workspace: "/profile"
+
+    # data path
+    read_input_data: "/Init_Data/raw_data_input_fft/acceleration_cycle_260.csv"
+    input_data_double: "/Input_Data/Double_Data_Type/signalFilter"
+    input_data_float: "/Input_Data/Float_Data_Type/signalFilter"
+    inference_knn_path: "/Init_Data/inference_data_position/"
+
+    # exe path
+    exe: "build/SERRANO"
+}
+
+#}
+
+# Selecting the kernel
+# -1: Clear the binary data
+#  0: Read the original csv file and make binary signal
+#  1: Signal processing
+#  2: KMean clustering
+#  3: KNN classification  
 icase={{ params.icase }}
 
-# Signal ID for filtering
-id={{ params.id }}
+# Benchmark state
+BenchmarkState={{ params.benchmark_state }}
 
-# Applying filter (1: filter apply, 0: filter does not apply)
-Kalman_Filter={{ params.Kalman_Filter }}
-FFT_Filter={{ params.FFT_Filter }}
-MinMaxTransform={{ params.MinMaxTransform }}
+# Applying specific filter (1: filter apply, 0: filter does not apply)
+Kalman_Filter={{ params.filter.kalman }}
+FFT_Filter={{ params.filter.fft }}
+MinMax_Transform={{ params.filter.min_max }}
+SavitzkyGolay_Transform={{ params.filter.savitzky_golay }}
 
 # Kalman filter parameters
-R={{ params.R }}
-R_range_offset={{ params.R_range_offset }}
-R_range_endset={{ params.R_range_endset }}
+R={{ params.kalman.r }}
 
+# KNN parameters
+K_nearest_neighbor={{ params.knn.k_nearest_neighbor }}
+Cluster_number_KNN={{ params.knn.cluster_number }}
 
-# Path for input and output data
-workspace={{ params.workspace }}
-readInputData={{ params.readInputData }}
-binaryDataSignalPath={{ params.binaryDataSignalPath }}
-kalmanDataPath={{ params.kalmanDataPath }}
-fftDataPath={{ params.fftDataPath }}
-minMaxDataPath={{ params.minMaxDataPath }}
-binaryDataKNN={{ params.binaryDataKNN }}
-binaryDataDTWx={{ params.binaryDataDTWx }}
-binaryDataDTWy={{ params.binaryDataDTWy }}
-binaryBSholes={{ params.binaryBSholes }}
-     
+# KMean parameters
+number_cluster_kmean={{ params.kmean.cluster_number }}
+epsilon_criteria={{ "%.8f" | format(params.kmean.epsilon_criteria) }}
 
 # Parallelization parameters
-num_MPI_Procs={{ params.num_MPI_Procs }}
-numCommunicatoi={{ params.numCommunicatoi }}
-num_Thread={{ params.num_Thread }}
+num_MPI_Procs={{ params.num_mpi_procs }}
+num_Thread={{ params.num_thread }}
 
+# Approximation computing techniques
+perforation_stride={{ params.perforation_stride }}
+
+# Transprecision techniques
+precision_scenario={{ params.precision_scenario }}
 
 # Hardware configuration
 num_numa={{ params.num_numa }}
 num_core_numa={{ params.num_core_numa }}
 
-exe={{ params.exe }}
+# Setting up the workspace
+root_dir={{ params.root_dir }}
+workspace=${root_dir}{{ params.workspace }}
+profiling_workspace=${root_dir}{{ params.profiling_workspace }}
 
-mpirun --oversubscribe \
-    -np $num_MPI_Procs \
-    $exe \
-    $icase $id $R \
-    $num_Thread $num_numa $num_core_numa \
-    $workspace \
-    $readInputData $binaryDataSignalPath \
-    $kalmanDataPath $fftDataPath $minMaxDataPath \
-    $binaryDataKNN $binaryDataDTWx $binaryDataDTWy $binaryBSholes \
-    $Kalman_Filter $FFT_Filter $MinMaxTransform 
+# Path for input and output data
+readInputData={{ params.read_input_data }}
+inputDataDouble={{ params.input_data_double }}
+inputDataFloat={{ params.input_data_float }}
+inferenceKNNPath={{ params.inference_knn_path }}
+
+EXE={{ params.exe }}
+
+# changing to root dir
+cd ${root_dir}
+
+# loading modules
+module load tools/cmake/3.21.5
+module load compiler/gcc/11.2.0
+module load mpi/openmpi/4.1.1-gcc-11.2.0
+module load numlib/fftw/3.3.10-openmpi-4.1.1-gcc-11.2.0
+# cd build
+# source ../module/modNode01Exe.sh
+# cd ..
+
+# clear binary data: icase=-1
+mpirun \
+    --mca pml ob1 --mca btl tcp,self \
+    --bind-to core \
+    -n $num_MPI_Procs \
+    $EXE \
+    -1 $BenchmarkState \
+    $Kalman_Filter $FFT_Filter \
+    $MinMax_Transform $SavitzkyGolay_Transform \
+    $R \
+    $K_nearest_neighbor $Cluster_number_KNN \
+    $number_cluster_kmean $epsilon_criteria \
+    $perforation_stride $precision_scenario \
+    $num_numa $num_core_numa \
+    $num_Thread \
+    $workspace $profiling_workspace \
+    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath
+
+# generate binary data: icase=0
+mpirun \
+    --mca pml ob1 --mca btl tcp,self \
+    --bind-to core \
+    -n $num_MPI_Procs \
+    $EXE \
+    0 $BenchmarkState \
+    $Kalman_Filter $FFT_Filter \
+    $MinMax_Transform $SavitzkyGolay_Transform \
+    $R \
+    $K_nearest_neighbor $Cluster_number_KNN \
+    $number_cluster_kmean $epsilon_criteria \
+    $perforation_stride $precision_scenario \
+    $num_numa $num_core_numa \
+    $num_Thread \
+    $workspace $profiling_workspace \
+    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath
+
+# run the kernel: icase=$icase
+mpirun \
+    --mca pml ob1 --mca btl tcp,self \
+    --bind-to core \
+    -n $num_MPI_Procs \
+    $EXE \
+    $icase $BenchmarkState \
+    $Kalman_Filter $FFT_Filter \
+    $MinMax_Transform $SavitzkyGolay_Transform \
+    $R \
+    $K_nearest_neighbor $Cluster_number_KNN \
+    $number_cluster_kmean $epsilon_criteria \
+    $perforation_stride $precision_scenario \
+    $num_numa $num_core_numa \
+    $num_Thread \
+    $workspace $profiling_workspace \
+    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath

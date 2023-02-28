@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import hpc.api.utils.ssh as ssh
 import hpc.api.utils.persistence as persistence
+import hpc.api.utils.template as template
 from hpc.api.utils.scheduler_helper import SchedulerHelperFactory
 from hpc.api.openapi.models.job_request import JobRequest
 from hpc.api.openapi.models.job_status import JobStatus
@@ -24,9 +25,9 @@ async def submit(job_request: JobRequest) -> JobStatus:
     scheduler = infrastructure["scheduler"]
     helper = SchedulerHelperFactory.helper(scheduler)
 
-    # TODO: Change to template and EOF submission, once the HPC services are deployed
-    command = "cd test/ && {} test-job-openmpi-example.sh".format(
-        helper.get_submit_command())
+    rendered_template = template.render(job_request)
+    batch_cmd = helper.get_submit_command()
+    command = f"{batch_cmd} <<\EOF\n{rendered_template}\nEOF"
 
     stdout, stderr = await ssh.exec_command(host, username, pkey, command)
     job_id = str(uuid4())
