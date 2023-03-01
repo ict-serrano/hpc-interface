@@ -22,7 +22,11 @@ cd src/
 python3 -m hpc.api.run
 ```
 
-Before running tests, please provide a fixture (fixture.infrastructure.yaml) with the list of infrastructures and put in src/tests. The format for the fixture is the following:
+The examples of usage can be found in the Swagger UI `/ui` path.
+
+## Unit tests
+
+Before running tests, please provide a fixture (fixture.infrastructure.yaml) with the list of infrastructures and put in `src/tests`. The format for the fixture is the following:
 ```yaml
 - name: cluster_1
   host: some.cluster.com
@@ -41,7 +45,43 @@ To run tests:
 pytest src/tests
 ```
 
-The examples of usage can be found in the Swagger UI `/ui` path.
+## Examples
+
+First of all, install locally hpc-gateway, as the examples are using modules of hpc-gateway:
+
+```bash
+pip install -e .
+```
+
+In order to toggle local and remote execution of examples use `HPC_GATEWAY_REMOTE_TEST` environment variable.
+
+Before running examples, please provide a fixture (fixture.infrastructure.yaml) with the list of infrastructures and put in `examples`. The format for the fixture is the following:
+```yaml
+hpc:
+  - name: cluster_1
+    host: some.cluster.com
+    username: user_a
+    hostname: some.cluster
+    scheduler: slurm
+    ssh_key:
+      type: ssh-ed25519
+      path: /path/to/ssh/key
+      password: private-key-password
+s3:
+  - endpoint: s3-endpoint
+    bucket: some-bucket
+    region: local
+    access_key: your_access_key
+    secret_key: your_secret_key
+    small_file: "small-file.txt"
+    large_file: "large-file.txt"
+```
+
+To run, select individual example, e.g.:
+
+```bash
+python examples/job_submission.py
+```
 
 ## Data management
 

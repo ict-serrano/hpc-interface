@@ -10,4 +10,4 @@ src/hpc/api/openapi/
 *.egg-info/
 
 src/tests/fixture.infrastructure.yaml
-tests/integration/
+examples/fixture.infrastructure.yaml
