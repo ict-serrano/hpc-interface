@@ -119,6 +119,44 @@ def get_object():
     }
 
 
+@pytest.fixture
+def get_object_attributes():
+    return {
+        "DeleteMarker": False,
+        "LastModified": "2023-02-23T14:49:37.000Z",
+        "VersionId": "string",
+        "RequestCharged": "requester",
+        "ETag": "string",
+        "Checksum": {
+            "ChecksumCRC32": "string",
+            "ChecksumCRC32C": "string",
+            "ChecksumSHA1": "string",
+            "ChecksumSHA256": "string"
+        },
+        "ObjectParts": {
+            "TotalPartsCount": 123,
+            "PartNumberMarker": 123,
+            "NextPartNumberMarker": 123,
+            "MaxParts": 123,
+            "IsTruncated": False,
+            "Parts": [
+                {
+                    "PartNumber": 123,
+                    "Size": 123,
+                    "ChecksumCRC32": "string",
+                    "ChecksumCRC32C": "string",
+                    "ChecksumSHA1": "string",
+                    "ChecksumSHA256": "string"
+                },
+            ]
+        },
+        "StorageClass": "STANDARD",
+        "ObjectSize": 123
+    }
+
+
+
+
 @pytest.mark.asyncio
 async def test_list_buckets(client, list_buckets):
     stubber = Stubber(client)
@@ -131,7 +169,7 @@ async def test_list_buckets(client, list_buckets):
 @pytest.mark.asyncio
 async def test_list_buckets_failure(client):
     stubber = Stubber(client)
-    stubber.add_client_error('list_buckets')
+    stubber.add_client_error("list_buckets")
     stubber.activate()
     with pytest.raises(ClientError):
         await s3.list_buckets(client)
@@ -149,7 +187,7 @@ async def test_create_bucket(client, create_bucket):
 @pytest.mark.asyncio
 async def test_create_bucket_failure(client):
     stubber = Stubber(client)
-    stubber.add_client_error('create_bucket')
+    stubber.add_client_error("create_bucket")
     stubber.activate()
     with pytest.raises(ClientError):
         await s3.create_bucket(client, bucket, bucket_config)
@@ -167,7 +205,7 @@ async def test_delete_bucket(client):
 @pytest.mark.asyncio
 async def test_delete_bucket_failure(client):
     stubber = Stubber(client)
-    stubber.add_client_error('delete_bucket')
+    stubber.add_client_error("delete_bucket")
     stubber.activate()
     with pytest.raises(ClientError):
         await s3.delete_bucket(client, bucket)
@@ -182,15 +220,15 @@ async def test_upload_file(client, put_object):
         path = Path(d) / obj
         path.write_bytes(text_bytes)
         res = await s3.upload_file(client, path, bucket, obj)
-        assert res is None
+        assert res is not None
 
 
 @pytest.mark.asyncio
 async def test_upload_file_failure(client):
     stubber = Stubber(client)
-    stubber.add_client_error('put_object')
+    stubber.add_client_error("put_object")
     stubber.activate()
-    with pytest.raises(S3UploadFailedError):
+    with pytest.raises(ClientError):
         async with aiofiles.tempfile.TemporaryDirectory() as d:
             path = Path(d) / obj
             path.write_bytes(text_bytes)
@@ -200,21 +238,19 @@ async def test_upload_file_failure(client):
 @pytest.mark.asyncio
 async def test_download_file(client, get_object):
     stubber = Stubber(client)
-    stubber.add_response("head_object", {"ContentLength": 123})
     stubber.add_response("get_object", get_object)
     stubber.activate()
     async with aiofiles.tempfile.TemporaryDirectory() as d:
         dst = Path(d) / obj
         res = await s3.download_file(client, bucket, obj, dst)
-        assert res is None
+        assert res is not None
         dst.read_bytes() == text_bytes
 
 
 @pytest.mark.asyncio
 async def test_download_file_failure(client):
     stubber = Stubber(client)
-    stubber.add_response("head_object", {"ContentLength": 123})
-    stubber.add_client_error('get_object')
+    stubber.add_client_error("get_object")
     stubber.activate()
     with pytest.raises(ClientError):
         async with aiofiles.tempfile.TemporaryDirectory() as d:
@@ -234,7 +270,25 @@ async def test_delete_object(client):
 @pytest.mark.asyncio
 async def test_delete_object_failure(client):
     stubber = Stubber(client)
-    stubber.add_client_error('delete_object')
+    stubber.add_client_error("delete_object")
     stubber.activate()
     with pytest.raises(ClientError):
         await s3.delete_object(client, bucket, obj)
+
+
+@pytest.mark.asyncio
+async def test_get_object_attributes(client, get_object_attributes):
+    stubber = Stubber(client)
+    stubber.add_response("get_object_attributes", get_object_attributes)
+    stubber.activate()
+    res = await s3.get_object_attributes(client, bucket, obj)
+    assert res["ObjectSize"] == 123
+
+
+@pytest.mark.asyncio
+async def test_get_object_attributes_failure(client):
+    stubber = Stubber(client)
+    stubber.add_client_error("get_object_attributes")
+    stubber.activate()
+    with pytest.raises(ClientError):
+        await s3.get_object_attributes(client, bucket, obj)
