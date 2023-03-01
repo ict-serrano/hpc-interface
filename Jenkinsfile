@@ -168,9 +168,11 @@ pipeline {
                                     error("$testName: Returned status code = $responseCode when calling $url")
                                 }
 
+                                /* This a real kernel, but wrong data - resulting in job failure */
+                                /* However, the job status still can be retrieved properly */
                                 testName = '5. Submit a job - 201 response code'
                                 url = "http://${CHART_NAME}.integration:8080/job"
-                                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "params": {}, "services": [{ "name": "test_filter", "version": "0.0.1" }]}' -o /dev/null""", returnStdout: true)
+                                responseCode = sh(label: testName, script: """curl -m 10 -s -w '%{http_code}' --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "params": {"read_input_data": "abc", "input_data_double": "abc", "input_data_float": "abc", "inference_knn_path": "abc"}, "services": [ "fft" ], "watch_period": 1.0}' -o /dev/null""", returnStdout: true)
 
                                 if (responseCode != '201') {
                                     error("$testName: Returned status code = $responseCode when calling $url")
@@ -178,7 +180,7 @@ pipeline {
 
                                 testName = '6. Validate execution'
                                 url = "http://${CHART_NAME}.integration:8080/job"
-                                responseBody = sh(label: testName, script: """curl -m 10 -sL --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "params": {}, "services": [{ "name": "test_filter", "version": "0.0.1" }]}'""", returnStdout: true)
+                                responseBody = sh(label: testName, script: """curl -m 10 -sL --request POST $url --header 'Content-Type: application/json' --data-raw '{"infrastructure": "excess_slurm", "params": {"read_input_data": "abc", "input_data_double": "abc", "input_data_float": "abc", "inference_knn_path": "abc"}, "services": [ "fft" ], "watch_period": 1.0}'""", returnStdout: true)
                                 job_uuid = sh(label: testName, script: """echo \'$responseBody\' | jq -r '.id'""", returnStdout: true)
                                 
                                 url = "http://${CHART_NAME}.integration:8080/job/$job_uuid"
