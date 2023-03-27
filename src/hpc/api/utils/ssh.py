@@ -48,3 +48,20 @@ async def sftp_upload(
     ) as conn:
         async with conn.start_sftp_client() as sftp:
             await sftp.put(local_src, remote_dst)
+
+
+async def sftp_download(
+    host: str,
+    username: str,
+    pkey: asyncssh.SSHKey,
+    remote_src: Path,
+    local_dst: Path
+) -> None:
+    async with asyncssh.connect(
+        host,
+        username=username,
+        client_keys=[pkey],
+        known_hosts=None,  # TODO: security concern
+    ) as conn:
+        async with conn.start_sftp_client() as sftp:
+            await sftp.get(remote_src, local_dst)

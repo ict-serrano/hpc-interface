@@ -10,6 +10,7 @@ import hpc.api.utils.persistence as persistence
 from hpc.api.openapi.models.file_transfer_request import FileTransferRequest
 from hpc.api.openapi.models.s3_file_transfer_request import S3FileTransferRequest
 from hpc.api.openapi.models.file_transfer_status_code import FileTransferStatusCode
+from hpc.api.openapi.models.s3_result_transfer_request import S3ResultTransferRequest
 
 
 async def sleep(*args, **kwargs):
@@ -45,6 +46,24 @@ async def submit_s3_ft(ssh_infrastructures):
         infrastructure=ssh_infrastructures[1]["name"]
     )
     return data_manager, ft_request, await data_manager.transfer(ft_request)
+
+
+@pytest.fixture
+async def submit_s3_rt(ssh_infrastructures):
+    data_manager = DataManagerFactory.get_data_manager(
+        DataManagerFactory.S3_RESULT)
+    ssh_infrastructures = await ssh_infrastructures
+    rt_request = S3ResultTransferRequest(
+        endpoint="https://some-s3-endpoint.com/s3",
+        bucket="test-bucket",
+        object="some-object.txt",
+        region="some-region",
+        access_key="access-key",
+        secret_key="secret-key",
+        src="/tmp/some_file.txt",
+        infrastructure=ssh_infrastructures[1]["name"]
+    )
+    return data_manager, rt_request, await data_manager.transfer(rt_request)
 
 
 @pytest.mark.asyncio
@@ -227,5 +246,98 @@ async def test_unsuccessful_s3_file_transfer_sftp_upload_failed(
 @pytest.mark.asyncio
 async def test_non_existent_s3_file_transfer():
     data_manager = DataManagerFactory.get_data_manager(DataManagerFactory.S3)
+    with pytest.raises(KeyError):
+        await data_manager.get("non_existent_file")
+
+
+@patch("hpc.api.utils.s3.upload_file", side_effect=sleep)
+@patch("hpc.api.utils.ssh.sftp_download", side_effect=sleep)
+@pytest.mark.asyncio
+async def test_successful_s3_result_transfer_waiting_long_execution(
+    sftp,
+    uploader,
+    submit_s3_rt
+):
+    data_manager, ft_request, ft_status = await submit_s3_rt
+    assert UUID(ft_status.id, version=4)
+    assert ft_status.infrastructure == ft_request.infrastructure
+    assert ft_status.endpoint == ft_request.endpoint
+    assert ft_status.bucket == ft_request.bucket
+    assert ft_status.object == ft_request.object
+    assert ft_status.region == ft_request.region
+    assert ft_status.src == ft_request.src
+    assert ft_status.status == FileTransferStatusCode.TRANSFERRING
+    assert ft_status.reason == ""
+    assert await persistence.get(
+        persistence.get_s3_transfer_directory(ft_status.id))
+
+    # TODO: testing "get" here. Should be tested in the next test
+    # TODO: Running the next test will close previous loop,
+    # and therefore will terminate the async handle_copy function
+    # Think how to elegantly overcome this.
+    while True:
+        ft_status = await data_manager.get(ft_status.id)
+        if ft_status.status == FileTransferStatusCode.TRANSFERRING:
+            await asyncio.sleep(0.1)
+            continue
+        else:
+            assert UUID(ft_status.id, version=4)
+            assert ft_status.status == FileTransferStatusCode.COMPLETED
+            assert ft_status.infrastructure == ft_request.infrastructure
+            assert ft_status.endpoint
+            assert ft_status.bucket
+            assert ft_status.object
+            assert ft_status.region
+            assert ft_status.src
+            assert ft_status.reason == ""
+            break
+
+
+@patch("hpc.api.utils.s3.upload_file")
+@patch("hpc.api.utils.ssh.sftp_download", side_effect=Exception("oops!"))
+@pytest.mark.asyncio
+async def test_unsuccessful_s3_result_transfer_download_result_failed(
+    sftp,
+    uploader,
+    submit_s3_rt
+):
+    data_manager, _, ft_status = await submit_s3_rt
+    assert ft_status.status == FileTransferStatusCode.TRANSFERRING
+    while True:
+        ft_status = await data_manager.get(ft_status.id)
+        if ft_status.status == FileTransferStatusCode.TRANSFERRING:
+            await asyncio.sleep(0.1)
+            continue
+        else:
+            assert ft_status.status == FileTransferStatusCode.FAILURE
+            assert ft_status.reason
+            break
+
+
+@patch("hpc.api.utils.s3.upload_file", side_effect=Exception("oops!"))
+@patch("hpc.api.utils.ssh.sftp_download")
+@pytest.mark.asyncio
+async def test_unsuccessful_s3_result_transfer_s3_upload_failed(
+    sftp,
+    uploader,
+    submit_s3_rt
+):
+    data_manager, _, ft_status = await submit_s3_rt
+    assert ft_status.status == FileTransferStatusCode.TRANSFERRING
+    while True:
+        ft_status = await data_manager.get(ft_status.id)
+        if ft_status.status == FileTransferStatusCode.TRANSFERRING:
+            await asyncio.sleep(0.1)
+            continue
+        else:
+            assert ft_status.status == FileTransferStatusCode.FAILURE
+            assert ft_status.reason
+            break
+
+
+@pytest.mark.asyncio
+async def test_non_existent_s3_result_transfer():
+    data_manager = DataManagerFactory.get_data_manager(
+        DataManagerFactory.S3_RESULT)
     with pytest.raises(KeyError):
         await data_manager.get("non_existent_file")

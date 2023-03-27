@@ -15,11 +15,14 @@ from hpc.api.openapi.models.file_transfer_status import FileTransferStatus
 from hpc.api.openapi.models.s3_file_transfer_request import S3FileTransferRequest
 from hpc.api.openapi.models.s3_file_transfer_status import S3FileTransferStatus
 from hpc.api.openapi.models.file_transfer_status_code import FileTransferStatusCode
+from hpc.api.openapi.models.s3_result_transfer_request import S3ResultTransferRequest
+from hpc.api.openapi.models.s3_result_transfer_status import S3ResultTransferStatus
 
 
 class DataManagerFactory:
     HTTP = "http"
     S3 = "s3"
+    S3_RESULT = "s3_result"
 
     @classmethod
     def get_data_manager(cls, proto):
@@ -27,6 +30,8 @@ class DataManagerFactory:
             return HTTPDataManager()
         elif proto == cls.S3:
             return S3DataManager()
+        elif proto == cls.S3_RESULT:
+            return S3ResultManager()
         else:
             raise NotImplementedError(f"This proto {proto} is not implemented")
 
@@ -173,6 +178,85 @@ class S3DataManager:
         file_transfer_id: str
     ) -> S3FileTransferStatus:
         return S3FileTransferStatus.from_dict(
+            json.loads(
+                await persistence.get(
+                    persistence.get_s3_transfer_directory(file_transfer_id))))
+
+
+class S3ResultManager:
+    async def transfer(
+        self,
+        ft_request: S3ResultTransferRequest
+    ) -> S3ResultTransferStatus:
+        ft_status = S3ResultTransferStatus(
+            id=str(uuid4()),
+            status=FileTransferStatusCode.TRANSFERRING,
+            infrastructure=ft_request.infrastructure,
+            endpoint=ft_request.endpoint,
+            bucket=ft_request.bucket,
+            object=ft_request.object,
+            region=ft_request.region,
+            src=ft_request.src,
+            reason="")
+        await persistence.save(
+            persistence.get_s3_transfer_directory(ft_status.id),
+            json.dumps(ft_status.to_dict()))
+        asyncio.create_task(
+            self.handle_copy(ft_request, ft_status),
+            name=ft_status.id)
+        return ft_status
+
+    async def handle_copy(
+        self,
+        ft_request: S3ResultTransferRequest,
+        ft_status: S3ResultTransferStatus
+    ) -> None:
+        try:
+            await self.copy(ft_request)
+            ft_status.status = FileTransferStatusCode.COMPLETED
+        except Exception as e:  # TODO: better error handling and error description
+            ft_status.status = FileTransferStatusCode.FAILURE
+            ft_status.reason = repr(e)
+        finally:
+            await persistence.save(
+                persistence.get_s3_transfer_directory(ft_status.id),
+                json.dumps(ft_status.to_dict()))
+
+    async def copy(
+        self,
+        ft_request: S3ResultTransferRequest
+    ) -> None:
+        infrastructure = json.loads(
+            await persistence.get(
+                persistence.get_cluster_directory(ft_request.infrastructure)))
+        key_path = infrastructure["ssh_key"]["path"]
+        key_password = infrastructure["ssh_key"]["password"]
+        pkey = await ssh.get_pkey(key_path, key_password)
+        host = infrastructure["host"]
+        username = infrastructure["username"]
+        async with aiofiles.tempfile.TemporaryDirectory() as download_dir:
+            # download from sftp to local file
+            remote_src = Path(ft_request.src)
+            local_dst = Path(download_dir) / ft_request.object
+            await ssh.sftp_download(host, username, pkey, remote_src, local_dst)
+            client = s3.get_client(
+                ft_request.endpoint,
+                ft_request.region,
+                ft_request.access_key,
+                ft_request.secret_key)
+            # upload local file to S3
+            local_src = local_dst
+            await s3.upload_file(
+                client,
+                local_src,
+                ft_request.bucket,
+                ft_request.object)
+
+    async def get(
+        self,
+        file_transfer_id: str
+    ) -> S3ResultTransferStatus:
+        return S3ResultTransferStatus.from_dict(
             json.loads(
                 await persistence.get(
                     persistence.get_s3_transfer_directory(file_transfer_id))))

@@ -397,6 +397,85 @@ paths:
               schema:
                 type: string
 
+  /s3_result:
+    post:
+      summary: "Transfer the results from HPC to an S3 bucket"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: transfer_remote_s3_results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/S3ResultTransferRequest"
+      responses:
+        201:
+          description: File transferred successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/S3ResultTransferStatus"
+        400:
+          description: Invalid data request
+          content:
+            application/json:
+              schema:
+                type: string
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
+        500:
+          description: There was an error during file transfer to S3
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /s3_result/{file_transfer_id}:
+    get:
+      summary: "Get S3 result transfer status"
+      # security:
+      #   - apiKey: [ ]
+      #   - oauth2: [ email ]
+      operationId: get_s3_result_transfer_status
+      parameters:
+        - name: file_transfer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: S3 result transfer status returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/S3ResultTransferStatus'
+        # 401:
+        #   description: Unauthorized request
+        #   content:
+        #     application/json:
+        #       schema:
+        #         type: string
+        404:
+          description: S3 result transfer not found
+          content:
+            application/json:
+              schema:
+                type: string
+        500:
+          description: There was an error during s3 result transfer retrieval
+          content:
+            application/json:
+              schema:
+                type: string
+
 components:
 
   schemas:
@@ -842,7 +921,90 @@ components:
           type: string
           default: local
         dst:
-          description: Path in the file system of the infrastructure to save the src file to 
+          description: Path in the file system of the infrastructure to save the S3 object to 
+          type: string
+        infrastructure:
+          description: Name of the HPC infrastructure
+          type: string
+        status:
+          description: Status of the file transfer
+          $ref: "#/components/schemas/FileTransferStatusCode"
+        reason:
+          description: Additional information, when something went wrong
+          type: string
+          default: ""
+
+    S3ResultTransferRequest:
+      description: S3 result transfer request schema
+      type: object
+      required:
+        - endpoint
+        - bucket
+        - object
+        - region
+        - access_key
+        - secret_key
+        - src
+        - infrastructure
+      properties:
+        endpoint:
+          description: S3 endpoint URL
+          type: string
+        bucket:
+          description: Name of the bucket
+          type: string
+        object:
+          description: Name of the object in the bucket to upload 
+          type: string
+        region:
+          description: Name of the storage region
+          type: string
+          default: local
+        access_key:
+          description: Access key
+          type: string
+        secret_key:
+          description: Secret key 
+          type: string
+        src:
+          description: Path in the file system of the infrastructure to upload to S3 
+          type: string
+        infrastructure:
+          description: Name of the HPC infrastructure
+          type: string
+
+    S3ResultTransferStatus:
+      description: Result transfer status schema
+      type: object
+      required:
+        - id
+        - status
+        - endpoint
+        - bucket
+        - object
+        - region
+        - src
+        - infrastructure
+      properties:
+        id:
+          description: UUID of the file transfer
+          type: string
+          format: uuid
+        endpoint:
+          description: S3 endpoint URL
+          type: string
+        bucket:
+          description: Name of the bucket
+          type: string
+        object:
+          description: Name of the object in the bucket to download 
+          type: string
+        region:
+          description: Name of the storage region
+          type: string
+          default: local
+        src:
+          description: Path in the file system of the infrastructure to upload to S3 
           type: string
         infrastructure:
           description: Name of the HPC infrastructure
