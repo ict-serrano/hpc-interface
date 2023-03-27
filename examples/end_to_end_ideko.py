@@ -13,6 +13,9 @@ from hpc.api.openapi.models.job_status_code import JobStatusCode
 DATA = Path.home() / "serrano" / "data" / "acceleration_cycle_260.csv"
 DST = f"serrano/data/Init_Data/raw_data_input_fft/from_s3_{DATA.name}"
 READ_INPUT_DATA = f"/Init_Data/raw_data_input_fft/from_s3_{DATA.name}"
+# TODO: this will be updated, once the aggregation of results are implemented
+#       in the kernel
+RESULT = f"serrano/data/Output_Data/FFTFilter.csv"
 
 
 def s3_client(s3_config):
@@ -117,11 +120,58 @@ async def await_job_response(session, job_id):
                 break
 
 
+async def hpc_transfer_to_s3():
+    url = infra.get_url("/s3_result")
+    hpc = infra.get_hpc()[1]
+    s3 = infra.get_s3()[0]
+    data = {
+        "endpoint": s3.get("endpoint"),
+        "bucket": s3.get("bucket"),
+        "object": f"result_{DATA.name}",
+        "region": s3.get("region"),
+        "access_key": s3.get("access_key"),
+        "secret_key": s3.get("secret_key"),
+        "src": RESULT,
+        "infrastructure": hpc.get("name")
+    }
+    async with aiohttp.ClientSession() as session:
+        print(f"Transferring result - {RESULT}")
+        async with session.post(url, json=data) as res:
+            status = await res.json()
+            print(status)
+        await await_rt_response(session, status.get("id"))
+
+
+async def await_rt_response(session, ft_id):
+    while True:
+        ft_url = infra.get_url(f"/s3_result/{ft_id}")
+        async with session.get(ft_url) as res:
+            ft_status = await res.json()
+            print(f"Still transferring - {ft_status}")
+            if ft_status.get("status") == FileTransferStatusCode.TRANSFERRING:
+                await asyncio.sleep(1)
+                continue
+            else:
+                break
+
+
+async def check_s3_result():
+    config = infra.get_s3()[0]
+    client = s3_client(config)
+    bucket = config.get("bucket")
+    obj = f"result_{DATA.name}"
+    res = client.list_objects(Bucket=bucket)
+    obj = [o for o in res["Contents"] if o["Key"] == obj][0]
+    print(obj)
+
+
 async def main():
     await infra.create_infrastructure()
     await prepare_s3()
     await s3_transfer_to_hpc()
     await submit_slurm_job_fft()
+    await hpc_transfer_to_s3()
+    await check_s3_result()
 
 
 if __name__ == "__main__":

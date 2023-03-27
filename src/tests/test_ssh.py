@@ -98,3 +98,26 @@ async def test_ssh_sftp_upload(connect_mock, ssh_infrastructures):
                 host, username, pkey,
                 local_src, remote_dst
             )
+
+
+@patch("asyncssh.connect")
+@pytest.mark.asyncio
+async def test_ssh_sftp_download(connect_mock, ssh_infrastructures):
+    ssh_infrastructures = await ssh_infrastructures
+    for infrastructure in ssh_infrastructures:
+        key_path = infrastructure["ssh_key"]["path"]
+        key_password = infrastructure["ssh_key"]["password"]
+        pkey = await ssh.get_pkey(key_path, key_password)
+        host = infrastructure["host"]
+        username = infrastructure["username"]
+        async with aiofiles.tempfile.TemporaryDirectory() as tmp_dir:
+            remote_src = Path("/tmp") / "test_file.txt"
+            local_dst = Path(tmp_dir) / "test_file.txt"
+            sftp_get_mock = AsyncMock()
+            start_sftp_mock = MagicMock()
+            start_sftp_mock.start_sftp_client.return_value.__aenter__.return_value = sftp_get_mock
+            connect_mock.return_value.__aenter__.return_value = start_sftp_mock
+            await ssh.sftp_download(
+                host, username, pkey,
+                remote_src, local_dst
+            )

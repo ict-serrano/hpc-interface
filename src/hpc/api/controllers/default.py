@@ -9,6 +9,7 @@ import hpc.api.services.telemetry as telemetry
 from hpc.api.log import get_logger
 from hpc.api.openapi.models.file_transfer_request import FileTransferRequest
 from hpc.api.openapi.models.s3_file_transfer_request import S3FileTransferRequest
+from hpc.api.openapi.models.s3_result_transfer_request import S3ResultTransferRequest
 from hpc.api.services.data_manager import DataManagerFactory
 
 logger = get_logger(__name__)
@@ -163,4 +164,38 @@ async def get_s3_file_transfer_status(file_transfer_id):
     except Exception as ex:
         logger.exception(
             "An error occurred during retrieval of the S3 file transfer")
+        return {"message": str(ex)}, 500
+
+
+async def transfer_remote_s3_results(request: Request):
+    logger.debug("Transferring a result to S3")
+
+    if request.content_type == "application/json":
+        ft_request = S3ResultTransferRequest.from_dict(await request.json())
+        logger.debug(ft_request)
+    else:
+        return {"Incorrect input, expected JSON"}, 400
+
+    try:
+        dm = DataManagerFactory.get_data_manager(DataManagerFactory.S3_RESULT)
+        res = await dm.transfer(ft_request)
+        return res.to_dict(), 201
+    except Exception as ex:
+        logger.exception("An error occurred during transferring a result to S3")
+        return {"message": str(ex)}, 500
+
+
+async def get_s3_result_transfer_status(file_transfer_id):
+    logger.debug("Retrieving S3 result transfer: {}".format(file_transfer_id))
+    try:
+        dm = DataManagerFactory.get_data_manager(DataManagerFactory.S3_RESULT)
+        res = await dm.get(file_transfer_id)
+        return res.to_dict(), 200
+    except KeyError as ex:
+        logger.exception(
+            "S3 result transfer not found: {}".format(file_transfer_id))
+        return {"message": str(ex)}, 404
+    except Exception as ex:
+        logger.exception(
+            "An error occurred during retrieval of the S3 result transfer")
         return {"message": str(ex)}, 500
