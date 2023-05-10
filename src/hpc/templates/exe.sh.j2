@@ -10,16 +10,25 @@ params = {
     # kernel
     icase: -1..3
 
+    # Select a group of kernels, belonging to a use case 
+    ideko_kernel: 0..1
+    inbestme_kernel: 0..1
+
+    # Pack the output into CSV
+    csv_output: 0..1
+
     # signal processing - if icase == 1
     filter:
         kalman: 0..1 
         fft: 0..1
         min_max: 0..1
         savitzky_golay: 0..1
+        black_scholes: 0..1
+        wavelet: 0..1
 
     # kalman filter config
     kalman:
-        r: 200
+        r: 10
     
     # fft filter config
     fft: {}
@@ -29,6 +38,12 @@ params = {
 
     # savitzky golay filter config
     savitzky_golay: {}
+
+    # black scholes filter config
+    black_scholes: {}
+
+    # wavelet filter config
+    wavelet: {}
 
     # kmean config
     kmean:
@@ -76,11 +91,20 @@ params = {
 
 # Selecting the kernel
 # -1: Clear the binary data
-#  0: Read the original csv file and make binary signal
+#  0: (packing2CSVformat=0) Read the original csv file and make binary signal,
+#  0: (packing2CSVformat=1) Read binary output files and make output csv
 #  1: Signal processing
 #  2: KMean clustering
 #  3: KNN classification  
 icase={{ params.icase }}
+
+# Select a group of kernels, belonging to a use case
+IDEKO_Kernel={{ params.ideko_kernel }}
+INBestMe_Kernel={{ params.inbestme_kernel }}
+
+# Packing the into CSV format
+# Must be 0 for icase in [-1, 1, 2, 3]
+packing2CSVformat={{ params.csv_output }}
 
 # Benchmark state
 BenchmarkState={{ params.benchmark_state }}
@@ -90,6 +114,8 @@ Kalman_Filter={{ params.filter.kalman }}
 FFT_Filter={{ params.filter.fft }}
 MinMax_Transform={{ params.filter.min_max }}
 SavitzkyGolay_Transform={{ params.filter.savitzky_golay }}
+BlackScholes={{ params.filter.black_scholes }}
+WaveletFiltering={{ params.filter.wavelet }}
 
 # Kalman filter parameters
 R={{ params.kalman.r }}
@@ -142,6 +168,7 @@ module load numlib/fftw/3.3.10-openmpi-4.1.1-gcc-11.2.0
 # cd ..
 
 # clear binary data: icase=-1
+# packing2CSVformat must be zero
 mpirun \
     --mca pml ob1 --mca btl tcp,self \
     --bind-to core \
@@ -149,7 +176,7 @@ mpirun \
     $EXE \
     -1 $BenchmarkState \
     $Kalman_Filter $FFT_Filter \
-    $MinMax_Transform $SavitzkyGolay_Transform \
+    $BlackScholes $SavitzkyGolay_Transform \
     $R \
     $K_nearest_neighbor $Cluster_number_KNN \
     $number_cluster_kmean $epsilon_criteria \
@@ -157,9 +184,11 @@ mpirun \
     $num_numa $num_core_numa \
     $num_Thread \
     $workspace $profiling_workspace \
-    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath
+    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath \
+    $IDEKO_Kernel $INBestMe_Kernel 0
 
 # generate binary data: icase=0
+# in this case packing2CSVformat must be zero, since we generate binary
 mpirun \
     --mca pml ob1 --mca btl tcp,self \
     --bind-to core \
@@ -167,7 +196,7 @@ mpirun \
     $EXE \
     0 $BenchmarkState \
     $Kalman_Filter $FFT_Filter \
-    $MinMax_Transform $SavitzkyGolay_Transform \
+    $BlackScholes $SavitzkyGolay_Transform \
     $R \
     $K_nearest_neighbor $Cluster_number_KNN \
     $number_cluster_kmean $epsilon_criteria \
@@ -175,9 +204,11 @@ mpirun \
     $num_numa $num_core_numa \
     $num_Thread \
     $workspace $profiling_workspace \
-    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath
+    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath \
+    $IDEKO_Kernel $INBestMe_Kernel 0
 
 # run the kernel: icase=$icase
+# in this case packing2CSVformat must be zero
 mpirun \
     --mca pml ob1 --mca btl tcp,self \
     --bind-to core \
@@ -185,7 +216,7 @@ mpirun \
     $EXE \
     $icase $BenchmarkState \
     $Kalman_Filter $FFT_Filter \
-    $MinMax_Transform $SavitzkyGolay_Transform \
+    $BlackScholes $SavitzkyGolay_Transform \
     $R \
     $K_nearest_neighbor $Cluster_number_KNN \
     $number_cluster_kmean $epsilon_criteria \
@@ -193,4 +224,27 @@ mpirun \
     $num_numa $num_core_numa \
     $num_Thread \
     $workspace $profiling_workspace \
-    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath
+    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath \
+    $IDEKO_Kernel $INBestMe_Kernel 0
+
+{% if params.csv_output %}
+# generate csv output data: icase=0
+# in this case packing2CSVformat must be 1, since we generate csv
+mpirun \
+    --mca pml ob1 --mca btl tcp,self \
+    --bind-to core \
+    -n $num_MPI_Procs \
+    $EXE \
+    0 $BenchmarkState \
+    $Kalman_Filter $FFT_Filter \
+    $BlackScholes $SavitzkyGolay_Transform \
+    $R \
+    $K_nearest_neighbor $Cluster_number_KNN \
+    $number_cluster_kmean $epsilon_criteria \
+    $perforation_stride $precision_scenario \
+    $num_numa $num_core_numa \
+    $num_Thread \
+    $workspace $profiling_workspace \
+    $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath \
+    $IDEKO_Kernel $INBestMe_Kernel 1
+{% endif %}

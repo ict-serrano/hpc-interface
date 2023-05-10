@@ -6,9 +6,23 @@ from hpc.api.openapi.models.service_name import ServiceName
 from hpc.api.openapi.models.job_request_params import *
 
 
+def test_non_existent_filter():
+    with pytest.raises(ValueError):
+        template.generate_params(
+            JobRequest(
+                services=["non_existent"],
+                infrastructure="some_infra",
+                params=JobRequestParams(
+                    read_input_data="abc"
+                )
+            ))
+
+
 def test_params_filters_generated_correctly_from_request():
     request = JobRequest(
-        services=[ServiceName.KALMAN, ServiceName.FFT],
+        services=[
+            ServiceName.KALMAN, ServiceName.FFT, ServiceName.BLACK_SCHOLES,
+            ServiceName.WAVELET, ServiceName.SAVITZKY_GOLAY],
         infrastructure="some_infra",
         params=JobRequestParams(
             read_input_data="abc",
@@ -22,7 +36,9 @@ def test_params_filters_generated_correctly_from_request():
     assert params.filter.kalman == 1
     assert params.filter.fft == 1
     assert params.filter.min_max == 0
-    assert params.filter.savitzky_golay == 0
+    assert params.filter.black_scholes == 1
+    assert params.filter.wavelet == 1
+    assert params.filter.savitzky_golay == 1
     assert params.kalman.r == 200
 
 
@@ -164,10 +180,11 @@ def test_data_path_params():
     with pytest.raises(ValueError):
         template.generate_params(
             JobRequest(
-                services=[ServiceName.KNN],
+                services=[ServiceName.KMEAN],
                 infrastructure="some_infra",
                 params=JobRequestParams(
-                    read_input_data="abc",
+                    read_input_data="",
+                    input_data_double="abc",
                     input_data_float="abc",
                     inference_knn_path="abc",
                 )
@@ -175,23 +192,37 @@ def test_data_path_params():
     with pytest.raises(ValueError):
         template.generate_params(
             JobRequest(
-                services=[ServiceName.KNN],
+                services=[ServiceName.KMEAN],
                 infrastructure="some_infra",
                 params=JobRequestParams(
                     read_input_data="abc",
-                    input_data_double="abc",
+                    input_data_double="",
+                    input_data_float="abc",
                     inference_knn_path="abc",
                 )
             ))
     with pytest.raises(ValueError):
         template.generate_params(
             JobRequest(
-                services=[ServiceName.KNN],
+                services=[ServiceName.KMEAN],
+                infrastructure="some_infra",
+                params=JobRequestParams(
+                    read_input_data="abc",
+                    input_data_double="abc",
+                    input_data_float="",
+                    inference_knn_path="abc",
+                )
+            ))
+    with pytest.raises(ValueError):
+        template.generate_params(
+            JobRequest(
+                services=[ServiceName.KMEAN],
                 infrastructure="some_infra",
                 params=JobRequestParams(
                     read_input_data="abc",
                     input_data_double="abc",
                     input_data_float="abc",
+                    inference_knn_path="",
                 )
             ))
 
@@ -210,3 +241,33 @@ def test_hpc_service_params_included():
     )
     rendered_template = template.render(request)
     assert "BenchmarkState=1" in rendered_template
+
+
+def test_csv_output_command_rendering_depending_on_csv_output_flag():
+    request = JobRequest(
+        services=[ServiceName.KNN],
+        infrastructure="some_infra",
+        params=JobRequestParams(
+            benchmark_state=1,
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        )
+    )
+    rendered_template = template.render(request)
+    assert "# generate csv output data: icase=0" in rendered_template
+    request = JobRequest(
+        services=[ServiceName.KNN],
+        infrastructure="some_infra",
+        params=JobRequestParams(
+            benchmark_state=1,
+            csv_output=0,
+            read_input_data="abc",
+            input_data_double="abc",
+            input_data_float="abc",
+            inference_knn_path="abc",
+        )
+    )
+    rendered_template = template.render(request)
+    assert "# generate csv output data: icase=0" not in rendered_template

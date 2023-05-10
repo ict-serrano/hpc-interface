@@ -497,6 +497,8 @@ components:
         - fft
         - min_max
         - savitzky_golay
+        - black_scholes
+        - wavelet
         - kmean
         - knn
 
@@ -673,14 +675,23 @@ components:
       type: object
       required:
         - read_input_data
-        - input_data_double
-        - input_data_float
-        - inference_knn_path
       properties:
         icase:
           description: Selection of kernel
           type: integer
           default: -1
+        ideko_kernel:
+          description: Select a group of kernels, belonging to a IDEKO use case
+          type: integer
+          default: 1
+        inbestme_kernel:
+          description: Select a group of kernels, belonging to a INBESTME use case
+          type: integer
+          default: 0
+        csv_output:
+          description: Pack the output into CSV
+          type: integer
+          default: 1
         filter:
           description: Specific to signal processing
           type: object
@@ -701,6 +712,14 @@ components:
               description: Enable savitzky_golay filter
               type: integer
               default: 0
+            black_scholes:
+              description: Enable black_scholes filter
+              type: integer
+              default: 0
+            wavelet:
+              description: Enable wavelet filter
+              type: integer
+              default: 0
         kalman:
           description: kalman filter config
           type: object
@@ -708,7 +727,7 @@ components:
             r:
               description: R parameter
               type: integer
-              default: 200
+              default: 10
         fft:
           description: fft filter config
           type: object
@@ -717,6 +736,12 @@ components:
           type: object
         savitzky_golay:
           description: savitzky_golay filter config
+          type: object
+        black_scholes:
+          description: black_scholes filter config
+          type: object
+        wavelet:
+          description: wavelet filter config
           type: object
         kmean:
           description: kmean config
@@ -789,12 +814,15 @@ components:
         input_data_double:
           description: Binary input data double precision
           type: string
+          default: "/Input_Data/Double_Data_Type/signalFilter"
         input_data_float:
           description: Binary input data float precision
           type: string
+          default: "/Input_Data/Float_Data_Type/signalFilter"
         inference_knn_path:
           description: Path to KNN inference
           type: string
+          default: "/Init_Data/inference_data_position/"
         exe:
           description: Path to exe binary  
           type: string

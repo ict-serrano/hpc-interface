@@ -18,6 +18,12 @@ class Listing():
                 name=ServiceName.SAVITZKY_GOLAY,
             ),
             HPCService(
+                name=ServiceName.BLACK_SCHOLES,
+            ),
+            HPCService(
+                name=ServiceName.WAVELET,
+            ),
+            HPCService(
                 name=ServiceName.KMEAN,
             ),
             HPCService(
@@ -31,4 +37,6 @@ class Listing():
             ServiceName.FFT,
             ServiceName.MIN_MAX,
             ServiceName.SAVITZKY_GOLAY,
+            ServiceName.BLACK_SCHOLES,
+            ServiceName.WAVELET
         ]

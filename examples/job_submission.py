@@ -15,9 +15,6 @@ async def submit_slurm_job_fft():
         "infrastructure": slurm_hpc.get("name"),
         "params": {
             "read_input_data": "/Init_Data/raw_data_input_fft/acceleration_cycle_260.csv",
-            "input_data_double": "/Input_Data/Double_Data_Type/signalFilter",
-            "input_data_float": "/Input_Data/Float_Data_Type/signalFilter",
-            "inference_knn_path": "/Init_Data/inference_data_position/",
         },
         "watch_period": 1.0
     }

@@ -10,12 +10,10 @@ from hpc.api.openapi.models.service_name import ServiceName
 from hpc.api.openapi.models.job_status_code import JobStatusCode
 
 
-DATA = Path.home() / "serrano" / "data" / "acceleration_cycle_260.csv"
+DATA = Path(__file__).resolve().parent / "data" / "acceleration_cycle_26.csv"
 DST = f"serrano/data/Init_Data/raw_data_input_fft/from_s3_{DATA.name}"
 READ_INPUT_DATA = f"/Init_Data/raw_data_input_fft/from_s3_{DATA.name}"
-# TODO: this will be updated, once the aggregation of results are implemented
-#       in the kernel
-RESULT = f"serrano/data/Output_Data/FFTFilter.csv"
+RESULT = f"serrano/data/Output_Data/CSVFormate/FFT_Filter_output.csv"
 
 
 def s3_client(s3_config):
@@ -39,6 +37,8 @@ async def prepare_s3():
     bucket = config.get("bucket")
     storage_policy = config.get("region")
     bucket_config = {"LocationConstraint": storage_policy}
+    # res = await s3.delete_object(client, bucket, DATA.name)
+    # res = await s3.delete_object(client, bucket, f"result_{DATA.name}")
     res = await s3.list_buckets(client)
     if bucket_absent(bucket, res.get("Buckets", [])):
         print(f"Creating bucket - {bucket}")
@@ -92,9 +92,6 @@ async def submit_slurm_job_fft():
         "infrastructure": slurm_hpc.get("name"),
         "params": {
             "read_input_data": READ_INPUT_DATA,
-            "input_data_double": "/Input_Data/Double_Data_Type/signalFilter",
-            "input_data_float": "/Input_Data/Float_Data_Type/signalFilter",
-            "inference_knn_path": "/Init_Data/inference_data_position/",
         },
         "watch_period": 1.0
     }

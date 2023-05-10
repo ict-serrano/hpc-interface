@@ -47,16 +47,9 @@ def resolve_icase(request: JobRequest) -> JobRequestParamsFilter:
 
 
 def resolve_filters(request: JobRequest) -> JobRequestParamsFilter:
-    enable_kalman = 1 if ServiceName.KALMAN in request.services else 0
-    enable_fft = 1 if ServiceName.FFT in request.services else 0
-    enable_min_max = 1 if ServiceName.MIN_MAX in request.services else 0
-    enable_savitzky_golay = 1 if ServiceName.SAVITZKY_GOLAY in request.services else 0
-    return JobRequestParamsFilter(
-        kalman=enable_kalman,
-        fft=enable_fft,
-        min_max=enable_min_max,
-        savitzky_golay=enable_savitzky_golay,
-    )
+    listing = Listing()
+    filters = {k:int(k in request.services) for k in listing.get_filter_services()}
+    return JobRequestParamsFilter.from_dict(filters)
 
 
 def resolve_kalman_config(request: JobRequest) -> JobRequestParamsKalman:

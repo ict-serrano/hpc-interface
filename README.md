@@ -20,6 +20,9 @@ cd src/
 
 # Running the service
 python3 -m hpc.api.run
+
+# With debug
+PYTHONMALLOC=debug PYTHONASYNCIODEBUG=1 PYTHONDEBUG=1 python3 -m hpc.api.run
 ```
 
 The examples of usage can be found in the Swagger UI `/ui` path.
