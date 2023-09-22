@@ -116,20 +116,66 @@ There are three classes of kernels and they should not be mixed: signal processi
 
 There are multiple job parameters (`params`), however, the only required parameter is `read_input_data`, which is a path to the input data. The default values of other parameters are sufficient for execution of an HPC job. One can refer to the [OpenAPI specification](../openapi-spec.yaml) for the list of available parameters under `components.schemas.JobRequestParams`.
 
+### Examples of requests for different kernels
+
+#### FFT
+
+For FFT the body of request is the following. Please note that the FFT kernel requires IDEKO's acceleration data (e.g. [data/acceleration_cycle_26.csv](data/acceleration_cycle_26.csv)):
+
+```json
+{
+    "services": ["fft"],
+    "infrastructure": "excess_slurm",
+    "params": {
+        "read_input_data": "/Init_Data/raw_data_input_fft/from_s3_my_acceleration_data.csv",
+    }
+}
+```
+
+#### K-Means
+
+For K-Means the body of request is as follows. Please note that the K-Means kernel requires IDEKO's position data (e.g. [data/position_110.csv](data/position_110.csv)):
+
+```json
+{
+    "services": ["kmean"],
+    "infrastructure": "excess_slurm",
+    "params": {
+        "read_input_data": "/Init_Data/raw_data_position/from_s3_my_position_data.csv",
+    }
+}
+```
+
+#### K-NN
+
+For K-NN the body of request is as follows. Please note that the K-NN kernel requires IDEKO's position data (e.g. [data/position_110.csv](data/position_110.csv)) as well as the path to the inference data. In EXCESS cluster the inference data are already available:
+
+```json
+{
+    "services": ["knn"],
+    "infrastructure": "excess_slurm",
+    "params": {
+        "read_input_data": "/Init_Data/raw_data_position/from_s3_my_position_data.csv",
+        "inference_knn_path": "/Init_Data/inference_data_position/"
+    }
+}
+```
+
 
 ## Resulting data movement from the HPC infrastructure to SERRANO Secure Storage
 
-Once the job is executed, the resulting data is available in CSV format. Depending on the kernel executed, a filename of resulting data varies. By default, a directory that contains the data is: `serrano/data/Output_Data/CSVFormate/`. A filename for each kernel is
+Once the job is executed, the resulting data is available in CSV format. Depending on the kernel executed, a filename of resulting data varies. By default, a directory that contains the data is: `serrano/data/Output_Data/`. A filename for each kernel is
 
-| Filter            | Filename                  |
-| -------------     | ---------------------     |
-| Kalman            | Kalman_Filter_output.csv  |
-| FFT               | FFT_Filter_output.csv     |
-| Savitzky Golay    | SavitzkeyGolay_output.csv |
-| Other kernels     | TBD                       |
+| Filter            | Filename                              |
+| -------------     | ---------------------                 |
+| Kalman            | CSVFormate/Kalman_Filter_output.csv   |
+| FFT               | CSVFormate/FFT_Filter_output.csv      |
+| Savitzky Golay    | CSVFormate/SavitzkeyGolay_output.csv  |
+| K-Means           | KMean/KMean_cluster.csv               |
+| K-NN              | KNN/KNN_timesseries_label.csv         |
 
 
-In the similar way, the resulting data can be transferred back to the Secure Storage via `/s3_result` endpoint and this transfer can be monitored via `/s3_result/{id}`:
+In the similar way, the resulting data can be transferred back to the Secure Storage via `/s3_result` endpoint and this transfer can be monitored via `/s3_result/{id}`, e.g. for FFT Filter:
 
 ```python
 url = "https://hpc-interface.services.cloud.ict-serrano.eu/s3_result"
