@@ -132,6 +132,48 @@ For FFT the body of request is the following. Please note that the FFT kernel re
 }
 ```
 
+#### Kalman Filter
+
+For Kalman Filter the body of request is the following. Please note that the Kalman Filter kernel requires IDEKO's acceleration data (e.g. [data/acceleration_cycle_26.csv](data/acceleration_cycle_26.csv)):
+
+```json
+{
+    "services": ["kalman"],
+    "infrastructure": "excess_slurm",
+    "params": {
+        "read_input_data": "/Init_Data/raw_data_input_fft/from_s3_my_acceleration_data.csv",
+    }
+}
+```
+
+#### Savitzky-Golay Filter
+
+For Savitzky-Golay Filter the body of request is the following. Please note that the Savitzky-Golay Filter kernel requires IDEKO's acceleration data (e.g. [data/acceleration_cycle_26.csv](data/acceleration_cycle_26.csv)):
+
+```json
+{
+    "services": ["savitzky_golay"],
+    "infrastructure": "excess_slurm",
+    "params": {
+        "read_input_data": "/Init_Data/raw_data_input_fft/from_s3_my_acceleration_data.csv",
+    }
+}
+```
+
+#### Black-Scholes Filter
+
+For Black-Scholes Filter the body of request is the following. Please note that the Black-Scholes Filter kernel requires IDEKO's acceleration data (e.g. [data/acceleration_cycle_26.csv](data/acceleration_cycle_26.csv)):
+
+```json
+{
+    "services": ["black_scholes"],
+    "infrastructure": "excess_slurm",
+    "params": {
+        "read_input_data": "/Init_Data/raw_data_input_fft/from_s3_my_acceleration_data.csv",
+    }
+}
+```
+
 #### K-Means
 
 For K-Means the body of request is as follows. Please note that the K-Means kernel requires IDEKO's position data (e.g. [data/position_110.csv](data/position_110.csv)):
@@ -148,7 +190,7 @@ For K-Means the body of request is as follows. Please note that the K-Means kern
 
 #### K-NN
 
-For K-NN the body of request is as follows. Please note that the K-NN kernel requires IDEKO's position data (e.g. [data/position_110.csv](data/position_110.csv)) as well as the path to the inference data. In EXCESS cluster the inference data are already available:
+For K-NN the body of request is as follows. Please note that the K-NN kernel requires IDEKO's position data (e.g. [data/position_110.csv](data/position_110.csv)) as well as the path to the inference data and clustering labels. In EXCESS cluster the inference data are already available:
 
 ```json
 {
@@ -156,7 +198,8 @@ For K-NN the body of request is as follows. Please note that the K-NN kernel req
     "infrastructure": "excess_slurm",
     "params": {
         "read_input_data": "/Init_Data/raw_data_position/from_s3_my_position_data.csv",
-        "inference_knn_path": "/Init_Data/inference_data_position/"
+        "inference_knn_path": "/Init_Data/inference_data_position/",
+        "clustering_label_path": "/Output_Data/KMean/KMean_cluster.csv",
     }
 }
 ```
@@ -170,7 +213,8 @@ Once the job is executed, the resulting data is available in CSV format. Dependi
 | -------------     | ---------------------                 |
 | Kalman            | CSVFormate/Kalman_Filter_output.csv   |
 | FFT               | CSVFormate/FFT_Filter_output.csv      |
-| Savitzky Golay    | CSVFormate/SavitzkeyGolay_output.csv  |
+| Savitzky-Golay    | CSVFormate/SavitzkeyGolay_output.csv  |
+| Black-Scholes     | CSVFormate/BlackScholes_output.csv    |
 | K-Means           | KMean/KMean_cluster.csv               |
 | K-NN              | KNN/KNN_timesseries_label.csv         |
 

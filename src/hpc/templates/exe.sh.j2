@@ -82,6 +82,7 @@ params = {
     input_data_double: "/Input_Data/Double_Data_Type/signalFilter"
     input_data_float: "/Input_Data/Float_Data_Type/signalFilter"
     inference_knn_path: "/Init_Data/inference_data_position/"
+    clustering_label_path: "/Output_Data/KMean/KMean_cluster.csv"
 
     # exe path
     exe: "build/SERRANO"
@@ -152,6 +153,7 @@ readInputData={{ params.read_input_data }}
 inputDataDouble={{ params.input_data_double }}
 inputDataFloat={{ params.input_data_float }}
 inferenceKNNPath={{ params.inference_knn_path }}
+clustering_label={{ params.clustering_label_path }}
 
 EXE={{ params.exe }}
 
@@ -185,7 +187,8 @@ mpirun \
     $num_Thread \
     $workspace $profiling_workspace \
     $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath \
-    $IDEKO_Kernel $INBestMe_Kernel 0
+    $IDEKO_Kernel $INBestMe_Kernel 0 \
+    $WaveletFiltering $clustering_label
 
 # generate binary data: icase=0
 # in this case packing2CSVformat must be zero, since we generate binary
@@ -205,7 +208,8 @@ mpirun \
     $num_Thread \
     $workspace $profiling_workspace \
     $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath \
-    $IDEKO_Kernel $INBestMe_Kernel 0
+    $IDEKO_Kernel $INBestMe_Kernel 0 \
+    $WaveletFiltering $clustering_label
 
 # run the kernel: icase=$icase
 # in this case packing2CSVformat must be zero
@@ -225,7 +229,8 @@ mpirun \
     $num_Thread \
     $workspace $profiling_workspace \
     $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath \
-    $IDEKO_Kernel $INBestMe_Kernel 0
+    $IDEKO_Kernel $INBestMe_Kernel 0 \
+    $WaveletFiltering $clustering_label
 
 {% if params.csv_output %}
 # generate csv output data: icase=0
@@ -246,5 +251,6 @@ mpirun \
     $num_Thread \
     $workspace $profiling_workspace \
     $readInputData $inputDataDouble $inputDataFloat $inferenceKNNPath \
-    $IDEKO_Kernel $INBestMe_Kernel 1
+    $IDEKO_Kernel $INBestMe_Kernel 1 \
+    $WaveletFiltering $clustering_label
 {% endif %}

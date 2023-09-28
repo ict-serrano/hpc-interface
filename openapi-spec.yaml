@@ -823,6 +823,10 @@ components:
           description: Path to KNN inference
           type: string
           default: "/Init_Data/inference_data_position/"
+        clustering_label_path:
+          description: Path to clustering label
+          type: string
+          default: "/Output_Data/KMean/KMean_cluster.csv"
         exe:
           description: Path to exe binary  
           type: string

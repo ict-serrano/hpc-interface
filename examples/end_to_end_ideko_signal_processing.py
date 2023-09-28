@@ -10,12 +10,16 @@ from hpc.api.openapi.models.service_name import ServiceName
 from hpc.api.openapi.models.job_status_code import JobStatusCode
 
 
-DATA = Path(__file__).resolve().parent / "data" / "position_110.csv"
-DST = f"serrano/data/Init_Data/raw_data_position/from_s3_{DATA.name}"
-READ_INPUT_DATA = f"/Init_Data/raw_data_position/from_s3_{DATA.name}"
-INFERENCE_DATA_POSITION = f"/Init_Data/inference_data_position/"
-CLUSTERING_LABEL = f"/Output_Data/KMean/KMean_cluster.csv"
-RESULT = f"serrano/data/Output_Data/KNN/KNN_timesseries_label.csv"
+DATA = Path(__file__).resolve().parent / "data" / "acceleration_cycle_26.csv"
+DST = f"serrano/data/Init_Data/raw_data_input_fft/from_s3_{DATA.name}"
+READ_INPUT_DATA = f"/Init_Data/raw_data_input_fft/from_s3_{DATA.name}"
+RESULT = f"serrano/data/Output_Data/CSVFormate/FFT_Filter_output.csv"
+RESULTS = {
+    ServiceName.FFT: "serrano/data/Output_Data/CSVFormate/FFT_Filter_output.csv",
+    ServiceName.KALMAN: "serrano/data/Output_Data/CSVFormate/Kalman_Filter_output.csv",
+    ServiceName.SAVITZKY_GOLAY: "serrano/data/Output_Data/CSVFormate/SavitzkeyGolay_output.csv",
+    ServiceName.BLACK_SCHOLES: "serrano/data/Output_Data/CSVFormate/BlackScholes_output.csv",
+}
 
 
 def s3_client(s3_config):
@@ -86,16 +90,22 @@ async def await_ft_response(session, ft_id):
                 break
 
 
-async def submit_slurm_job_knn():
+async def submit_slurm_job_signal_processing():
+    await submit_slurm_job(ServiceName.FFT)
+    await submit_slurm_job(ServiceName.KALMAN)
+    await submit_slurm_job(ServiceName.SAVITZKY_GOLAY)
+    await submit_slurm_job(ServiceName.BLACK_SCHOLES)
+
+
+async def submit_slurm_job(service):
+    print(f"Submitting Signal Processing: {service}")
     url = infra.get_url("/job")
     slurm_hpc = infra.get_hpc()[1]
     data = {
-        "services": [ServiceName.KNN],
+        "services": [service],
         "infrastructure": slurm_hpc.get("name"),
         "params": {
             "read_input_data": READ_INPUT_DATA,
-            "inference_knn_path": INFERENCE_DATA_POSITION,
-            "clustering_label_path": CLUSTERING_LABEL,
         },
         "watch_period": 1.0
     }
@@ -121,22 +131,29 @@ async def await_job_response(session, job_id):
                 break
 
 
-async def hpc_transfer_to_s3():
+async def hpc_transfer_to_s3_signal_processing():
+    await hpc_transfer_to_s3(ServiceName.FFT)
+    await hpc_transfer_to_s3(ServiceName.KALMAN)
+    await hpc_transfer_to_s3(ServiceName.SAVITZKY_GOLAY)
+    await hpc_transfer_to_s3(ServiceName.BLACK_SCHOLES)
+
+
+async def hpc_transfer_to_s3(service):
     url = infra.get_url("/s3_result")
     hpc = infra.get_hpc()[1]
     s3 = infra.get_s3()[0]
     data = {
         "endpoint": s3.get("endpoint"),
         "bucket": s3.get("bucket"),
-        "object": f"result_{ServiceName.KNN}_{DATA.name}",
+        "object": f"result_{service}_{DATA.name}",
         "region": s3.get("region"),
         "access_key": s3.get("access_key"),
         "secret_key": s3.get("secret_key"),
-        "src": RESULT,
+        "src": RESULTS[service],
         "infrastructure": hpc.get("name")
     }
     async with aiohttp.ClientSession() as session:
-        print(f"Transferring result - {RESULT}")
+        print(f"Transferring result - {RESULTS[service]}")
         async with session.post(url, json=data) as res:
             status = await res.json()
             print(status)
@@ -156,11 +173,18 @@ async def await_rt_response(session, ft_id):
                 break
 
 
-async def check_s3_result():
+async def check_s3_result_signal_processing():
+    await check_s3_result(ServiceName.FFT)
+    await check_s3_result(ServiceName.KALMAN)
+    await check_s3_result(ServiceName.SAVITZKY_GOLAY)
+    await check_s3_result(ServiceName.BLACK_SCHOLES)
+
+
+async def check_s3_result(service):
     config = infra.get_s3()[0]
     client = s3_client(config)
     bucket = config.get("bucket")
-    obj = f"result_{ServiceName.KNN}_{DATA.name}"
+    obj = f"result_{service}_{DATA.name}"
     res = client.list_objects(Bucket=bucket)
     obj = [o for o in res["Contents"] if o["Key"] == obj][0]
     print(obj)
@@ -170,9 +194,9 @@ async def main():
     await infra.create_infrastructure()
     await prepare_s3()
     await s3_transfer_to_hpc()
-    await submit_slurm_job_knn()
-    await hpc_transfer_to_s3()
-    await check_s3_result()
+    await submit_slurm_job_signal_processing()
+    await hpc_transfer_to_s3_signal_processing()
+    await check_s3_result_signal_processing()
 
 
 if __name__ == "__main__":
